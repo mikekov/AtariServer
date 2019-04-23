@@ -1,0 +1,99 @@
+;  atarisio - helper for atarisio remote control
+;
+;  Copyright (c) 2019 by Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+;
+
+SWAP_DRIVES
+	LDX #<PARAM_SWAP
+	LDY #>PARAM_SWAP
+	JSR CALL_SIO
+	BMI SWAP_FAILED
+
+	LDX #<PARAM_STATUS
+	LDY #>PARAM_STATUS
+	JSR CALL_SIO
+	BMI SWAP_FAILED
+	LDA STATUS_BUF
+	CMP #1
+	BNE SWAP_FAILED
+
+	LDX #<PARAM_NOP
+	LDY #>PARAM_NOP
+	JSR CALL_SIO
+
+	BPUT 0, TSWAPOKL, TSWAPOK
+	CLC
+	RTS
+
+SWAP_FAILED
+	BPUT 0, TSWAPERRL, TSWAPERR
+	SEC
+	RTS
+
+CALL_SIO
+	STX TMPVEC
+	STY TMPVEC+1
+	LDY #$0B
+CALL_SIO_L1
+	LDA (TMPVEC),Y
+	STA $300,Y
+	DEY
+	BPL CALL_SIO_L1
+	JMP $E459
+
+PARAM_SWAP
+	.BYTE 'a
+	.BYTE 1
+	.BYTE 'C
+	.BYTE $80
+	.WORD SWAP_CMD
+	.BYTE 7,0
+	.WORD SWAP_CMD_L
+	.WORD SWAP_CMD_L
+SWAP_CMD
+	.BYTE "xc 1 2"
+SWAP_CMD_L = * - SWAP_CMD
+
+PARAM_STATUS
+	.BYTE 'a
+	.BYTE 1
+	.BYTE 'S
+	.BYTE $40
+	.WORD STATUS_BUF
+	.BYTE 7,0
+	.WORD 4
+	.WORD 0
+
+STATUS_BUF
+	.DC 4 0
+
+PARAM_NOP
+	.BYTE 'a
+	.BYTE 1
+	.BYTE 'C
+	.BYTE $00
+	.WORD STATUS_BUF
+	.BYTE 7,0
+	.WORD 0
+	.WORD 0
+
+TSWAPOK	.BYTE "swapped AtariSIO drives D1: and D2:",155
+TSWAPOKL = * - TSWAPOK
+
+TSWAPERR .BYTE "AtariSIO remote control failed",155
+TSWAPERRL = * - TSWAPERR
+

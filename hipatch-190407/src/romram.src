@@ -1,0 +1,50 @@
+;  romram - copy OS ROM to RAM
+;
+;  Copyright 2009 Matthias Reichl
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+;
+
+
+; NOTE: you need to define a ZP location TMPVEC to use this code
+
+
+ROMRAM	SEI
+	LDY #0
+	STY $D40E
+	STY $D400
+	STY TMPVEC
+	LDA #$C0
+	STA TMPVEC+1
+?ROMMV	LDA (TMPVEC),Y
+	DEC $D301
+	STA (TMPVEC),Y
+	INC $D301
+	INY
+	BNE ?ROMMV
+	INC TMPVEC+1
+	LDA TMPVEC+1
+	BEQ ?ROMOK
+	CMP #$D0
+	BNE ?ROMMV
+	LDA #$D8
+	STA TMPVEC+1
+	BNE ?ROMMV
+?ROMOK	DEC $D301
+	LDA #$40
+	STA $D40E
+	CLI
+	RTS
+

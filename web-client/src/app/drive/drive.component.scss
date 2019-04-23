@@ -1,0 +1,57 @@
+@import "../../colors";
+
+.drive-main {
+	position: relative;
+}
+
+.monitor {
+	display: block;
+	position: relative;
+	z-index: 1;
+}
+
+.drive-image {
+	display: block;
+	position: relative;
+	margin-top: 0%;
+	max-height: 100%;
+	height: auto;
+	width: auto;
+}
+
+.message {
+	position: absolute;
+	z-index: 5;
+	left: 13%;
+	top: 10%;
+	font-size: 0.5em;
+	color: $color-monitor-text;
+}
+
+.overlay {
+	position: absolute;
+	z-index: 4;
+	left: 8.5%;
+	top: 7%;
+}
+
+.drive-label {
+	position: absolute;
+	z-index: 5;
+	left: 66%;
+	top: 77%;
+	color: $color-header-text;
+}
+
+.file-name {
+	position: absolute;
+	white-space: nowrap;
+	z-index: 5;
+	left: 0%;
+	width: 100%;
+	bottom: 20%;
+	color: $color-header-text;
+	text-align: center;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}

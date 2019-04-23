@@ -1,0 +1,53 @@
+;  Highspeed SIO test 
+;
+
+DBUF	= $0304
+DBYT	= $0308
+DSEC	= $030A
+
+START	= $2000
+
+HIGHSIO	= $4000
+
+        * = START
+        
+; set SIO parameters for D2:
+
+	LDA #$31
+	STA $300
+	LDA #3
+	STA $301
+	LDA #7
+	STA $306
+
+; read sectors 256-511 in a loop forever
+
+DOTEST	LDA #$52
+	STA $302
+	LDA #1
+	STA DSEC+1
+	LDA #0
+	STA DSEC
+	STA DBYT+1
+	LDA #128
+	STA DBYT
+
+	LDA #<BUF
+	STA DBUF
+	LDA #>BUF
+	STA DBUF+1
+
+TLOOP	LDA #$40
+	STA $303
+;	JSR $E459
+	JSR HIGHSIO
+
+	INC DSEC
+	JMP TLOOP
+
+BUF	= *
+
+	* = $2e0
+	.WORD START
+	
+

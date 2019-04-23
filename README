@@ -1,0 +1,16 @@
+AtariServer - 8-bit Atari drive emulator running on Raspberry Pi Zero W with web interface
+
+- atarisio
+Command line Atari drive emulator.
+
+- flask
+Web server to control atarisio remotely.
+
+- web-client
+Client application for selecting floppy images and Atari programs.
+
+- hipatch-190407
+High speed SIO routines for Atari
+
+== WORK IN PROGRESS ==
+

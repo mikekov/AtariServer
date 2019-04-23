@@ -1,0 +1,132 @@
+;  highsiocode-diag.src - highspeed SIO routine, optional diagnostic code
+;
+;  Copyright (c) 2003-2009 by Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
+; the code starting here is only for diagnostic purposes and is
+; normally not included
+
+.if .def DIAGSIO
+?DIAGS	.DC $20 0
+?DIAGB	.DC $20 0
+?DIAGB2	.DC $20 0
+?DIAGE	.DC $20 0
+?DIAGC	.DC $20 0
+?DIAGBT	.BYTE 0
+?DIAGX	.BYTE 0
+?DIAGST	.BYTE 0
+?DIAGER	.BYTE 0
+
+.if .def DIAGTIM
+?TSTAMP	.DC 4 0
+.endif
+
+PDIAG	LDA ?DIAGER
+	BNE ?PDIAG0
+	RTS
+
+?PDIAG0	LDA #0
+	STA ?DIAGBT
+?PDIAG1	LDX ?DIAGBT
+	CPX #$0C
+	BEQ ?PDIAG2
+	LDA $0300,X
+	JSR ?PHEX
+	LDA #$20
+	JSR ?PUTCHR
+	INC ?DIAGBT
+	BNE ?PDIAG1
+?PDIAG2	LDA #155
+	JSR ?PUTCHR
+
+.if .def DIAGTIM
+; print timestamp
+	LDA ?TSTAMP
+	JSR ?PHEX
+	LDA ?TSTAMP+1
+	JSR ?PHEX
+	LDA ?TSTAMP+2
+	JSR ?PHEX
+	LDA #'.
+	JSR ?PUTCHR
+	LDA ?TSTAMP+3
+	JSR ?PHEX
+	LDA #':
+	JSR ?PUTCHR
+	LDA #32
+	JSR ?PUTCHR
+.endif
+
+	LDA #0
+	STA ?DIAGBT
+?PDIAG3	LDX ?DIAGBT
+	CPX ?DIAGER
+	BEQ ?PDIAG4
+	LDA ?DIAGS,X	; phase/stage
+	JSR ?PHEX
+	LDA #$20
+	JSR ?PUTCHR
+	LDX ?DIAGBT
+	LDA ?DIAGE,X	; error/status
+	JSR ?PHEX
+	LDA #$20
+	JSR ?PUTCHR
+	LDX ?DIAGBT
+	LDA ?DIAGB,X	; last ack/nak byte
+	JSR ?PHEX
+	LDA #$20
+	JSR ?PUTCHR
+	LDX ?DIAGBT
+	LDA ?DIAGC,X	; current byte count
+	JSR ?PHEX
+	LDA #$20
+	JSR ?PUTCHR
+	LDX ?DIAGBT
+	LDA ?DIAGB2,X	; last received character
+	JSR ?PHEX
+	LDA #155
+	JSR ?PUTCHR
+	INC ?DIAGBT
+	BNE ?PDIAG3
+
+?PDIAG4	RTS
+
+?PHEX	PHA
+	LSR
+	LSR
+	LSR
+	LSR
+	TAX
+	LDA ?HEXTAB,X
+	JSR ?PUTCHR
+	PLA
+	AND #$0F
+	TAX
+	LDA ?HEXTAB,X
+
+?PUTCHR	TAY
+	LDA $E407
+	PHA
+	LDA $E406
+	PHA
+	TYA
+	RTS
+
+?HEXTAB	.BYTE "0123456789ABCDEF"
+
+.endif
+

@@ -1,0 +1,176 @@
+;  dumpos - dump current OS to a file
+;
+;  Copyright (c) 2006 by Matthias Reichl
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
+SRCVEC	= $E0
+DSTVEC	= $E2
+
+	.include "cio.inc"
+
+.bank
+
+ORG	= $6000
+
+	* = ORG
+
+MAIN	BPUT 0, TTITL, TTIT
+
+	INPUT 0, FNAM
+	BPL FOK
+	JMP ($A)	; back to DOS
+
+FOK	OPEN 1,8,0,FNAM
+	BPL OPENOK
+
+	PRINT 0, TOPERR
+	JMP MAIN
+
+OPENOK	
+
+; save $C000 - $CFFF
+	LDA #0
+	STA SRCVEC
+	LDA #$C0
+	STA SRCVEC+1
+	LDX #$10
+	JSR COPBLK
+
+	BPUT 1,$1000,BUF
+	BPL WOK1
+	JMP WRERR
+WOK1
+; save selftest of original ROM
+
+	SEI	; disable interrupts
+	LDA #0
+	STA $D40E
+
+; set $5000-$57FF to $FF, needed for dumping the old OS
+
+	LDA #0
+	STA SRCVEC
+	LDA #$50
+	STA SRCVEC+1
+	LDY #0
+	LDX #8
+	LDA #$FF
+CLRLP	STA (SRCVEC),Y
+	INY
+	BNE CLRLP
+	INC SRCVEC+1
+	DEX
+	BNE CLRLP
+
+; now (try to) enable selftest and copy it to buffer
+	LDA $D301
+	PHA
+	AND #$7f
+	ORA #1
+	STA $D301
+
+	LDA #0
+	STA SRCVEC
+	LDA #$50
+	STA SRCVEC+1
+	LDX #8
+	JSR COPBLK
+
+	PLA
+	STA $D301
+
+	LDA #$40
+	STA $D40E
+	CLI	; re-enable interrupts
+
+	BPUT 1,$0800,BUF
+	BMI WRERR
+
+; save $D800 - $FFFF
+	LDA #0
+	STA SRCVEC
+	LDA #$D8
+	STA SRCVEC+1
+	LDX #$28
+	JSR COPBLK
+
+	BPUT 1,$2800,BUF
+	BMI WRERR
+
+	CLOSE 1
+
+	PRINT 0,TSUCC
+	JMP WAIT
+
+WRERR	CLOSE 1
+	PRINT 0,TWRERR
+
+WAIT	BPUT 0, TXITL, TXIT
+	JSR GETKEY
+	CMP #'R
+	BNE XIT
+	JMP MAIN
+
+XIT	JMP ($A)	; back to DOS
+
+GETKEY	LDA $E425
+	PHA
+	LDA $E424
+	PHA
+	RTS
+
+; setup SRCVEC to point to source address and
+; X register to number of pages
+; memory block will then be copied to BUF
+
+COPBLK	LDA #<BUF
+	STA DSTVEC
+	LDA #>BUF
+	STA DSTVEC+1
+	LDY #0
+COPLP	LDA (SRCVEC),Y
+	STA (DSTVEC),Y
+	INY
+	BNE COPLP
+	INC SRCVEC+1
+	INC DSTVEC+1
+	DEX
+	BNE COPLP
+	RTS
+
+TTIT	.BYTE 155, "OS dumper V1.02",155
+	.BYTE "(c) 2006-2009 Matthias Reichl",155,155
+	.BYTE "filename >"
+TTITL	= * -TTIT
+
+TOPERR	.BYTE "error opening file!",155
+TWRERR	.BYTE "error writing file!",155
+TSUCC	.BYTE "successfully dumped OS!",155
+
+TXIT	.BYTE 155,"press 'R' to restart program,",155
+	.BYTE "any other key to exit",155
+TXITL	= * -TXIT
+
+FNAM	= *
+
+BUF	= * + $100
+
+.bank
+
+	* = $2E0
+	.WORD ORG
+

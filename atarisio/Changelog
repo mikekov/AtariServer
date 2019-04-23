@@ -1,0 +1,306 @@
+AtariSIO changelog:
+
+* V0.10 alpha, released 02/12/2003
+
+  initial release containing:
+  - atarisio kernel driver V0.2 alpha
+  - atariserver V0.10 alpha
+  - atarixfer V0.01 alpha
+
+* V0.10a alpha, released 02/18/2003
+
+  - fixed gcc-3.x compilation problems:
+    - Makefile: use CXX instead of CC for linking
+    - SIOTracer.C: removed default initializer for "prefix" in
+      TraceDecodedPercomBlock method (line 79)
+    - SIOWrapper.C: included <stdlib.h> so that exit() is defined
+
+  - added troubleshooting section to README
+
+* V0.10b alpha, released 02/19/2003
+
+  - Added note on gcc versions to README
+  - Updated Makefile
+  - minor cosmetic changes in atariserver and atarixfer
+
+* V0.11 beta, released 04/09/2003
+  - Changed project status from "alpha" to "beta"
+  - Added loadable high speed SIO code to atariserver
+    (thanks to ABBUC and Erhard Puetz!)
+  - Added "print DOS2.x directory" function to atariserver
+  - Fixed GetStatus command in atariserver
+  - Added disk density to atariserver status output
+  - Changed ioctl return error to standard errno style
+    (ioctl returns -1 on error and the error code is stored in errno)
+  - Added alias line (for kernel module autoloader) to
+    modutils templates modutils-ttySx
+
+* V0.20 beta, released 05/22/2003
+  - Updated Makefile
+  - Added devfs support to kernel driver and modutils templates
+  - Fixed error reporting of 'input type' sio commands
+    (eg format, read sector) in atarisio
+  - Added support for DSR-type SIO2PC cables in atarisio
+  - Added support for DCM, DI, and XFD images to atariserver and atarixfer
+  - Added zlib (transparent .gz file access) support
+  - Added "all" option to (un)protect and write image functions
+  - atarixfer now also uses realtime scheduling
+  - Reworked AtrImage code
+
+* V0.30-pre1 beta
+  - atarisio: Reworked kernel driver code to improve robustness
+  - atarisio: Added support for linux 2.6.x kernel
+  - atarisio: Added module parameter to set name of serial device
+    (instead of old io/irq numbers) - making the 'pre install'
+    and 'post remove' setserial stuff (partially) obsolete.
+  - atariserver: Added preliminary support for ATP 1.6 images
+  - Added new userspace tools:
+    * atr2atp converts an SD or ED ATR/DCM/DI/XFD image into the ATP format
+    * atpdump dumps the internal structure of an ATP image
+    * adir prints the directory of an ATR/DCM/DI/XFD image
+  - Reworked large parts of the user space code
+  - atariserver: Added new 'CTS' SIO2PC cable type
+  - atarisio: Added new 'high speed SIO with inter-byte pauses' mode to
+    fix compatibility problems with some slow high-speed-SIO routines
+  - atariserver: Added completely new curses frontend with many new features
+  - atariserver: Fixed "GetStatus" bug - setting drive density from
+    MyDos now works correctly
+  - atarixfer: Added support for reading non-standard sized disks
+  - atarixfer: Implemented XF551-compatible format recognition
+  - atarixfer: Added support for writing quad-density disks
+  - atarisio: Speedy 1050 workaround in 1050-2-PC/ProSystem mode.
+    'ACK' instead of 'COMPLETE' is now allowed, too
+  - atarisio: debugging level can now be set using module parameters
+    'debug' and 'debug_irq'
+
+* V0.30-pre2 beta
+  - atarixfer: fixed writing of ED (130k) and QD (360k) images
+  - atarisio: removed modversions.h include for 2.6.x kernels
+  - atarisio: fixed crash if no module parameters were given
+
+* V0.30-pre3 beta
+  - atariserver: added "virtual drive" functionality to transparently
+    access files on the PC
+  - atariserver: implemented search path for loading disk images
+  - atariserver: added special "load MyPicoDos" (BIN/BAS/COM file
+    loader) command 0x6d
+  - atariserver: virtual drives now contain boot code to load MyPicoDos
+    from atariserver
+  - atariserver: implemented printer support
+  - atarisio: the case when the PC was too slow to react on received bytes
+    and more bytes than expected were received is now handled correctly
+  - atarisio: increased delay between command ACK and complete to
+    fix problems with QMEG OS
+  - dir2atr: added optional boot-sectors for Dos 2.0, 2.5, TurboDos2.1
+    and MyPicoDos (4.03 and 4.04)
+  - atariserver, dir2atr: added on-the-fly calculation of image size
+  - atarisio, atariserver: added XF551 compatible 2xSIO transfer mode
+  - atariserver: added "remote control" protocol
+  - added on-the-fly creation of an ATR image if one loads an "image"
+    with an unrecognized extension
+  - atarisio: support for multiple interfaces
+  - atariserver: support for "apetime" command in disk handler
+  - atariserver: support for "get time" in remote control handler
+    (command $54, 6 bytes data, identical to "apetime")
+  - atariserver: new "pl" - "print log entry" command to display
+    some text in the atariserver log window
+  - atariserver: support for proprietary "get image name" and
+    "get APE version" APE commands in disk handler
+  - atariserver: support for activating/deactivating devices
+    without unloading the image or printer-handler
+  - atarisio: fixed kernel driver for AMD64 (thanks to B. Watson)
+  - changed the boot code of ATR-images that were created on the
+    fly (when loading a file with an unknown extension) so that
+    MyPicoDos autoruns the file in the image.
+  - atarisio: added support for kernel >=2.6.19
+  - added "allclean" target to clean 6502 binary files, running
+    "make clean" doesn't remove them (so people without ATasm don't
+    run into troubles)
+  - atarisio: support for autoswitching Atarimax interface
+  - atarisio: fixed module usage count for kernel 2.6.x
+  - dir2atr: automatically include PICODOS.SYS when creating a
+    MyPicoDos bootable disk
+  - atariserver: various curses frontend cleanups and fixes
+  - cleaned up debugging output
+  - atarisio: added preliminary tape functions
+  - atariserver: fixed on-the-fly creation of single file ATRs
+    larger than an ED disk
+  - atarisio: added support for kernel >= 2.6.22
+  - fixed UART lock-up after framing errors
+  - atariserver: added tape emulation support
+  - atarisio: added support for kernel 2.6.26
+  - atarisio: support 16550 ports maximum baudrate higher than 115200
+  - atarisio: fix for broken Moschip 9835 UART
+  - atariserver: updated loadable highspeed SIO code to newest version
+  - atarisio: preliminary support for 16C950 UARTs
+  - atarisio: preliminary fine-grained baudrate selection for 16C950 UARTs
+  - atariserver: configurable highspeed selection
+  - atarisio: removed IRQF_DISABLED from request_irq call
+  - atariserver: updated MyPicoDos and highspeed SIO code to 2009-05-03
+  - atarisio: added EXT_SIO ioctl with highspeed SIO support
+  - atarisio: reworked baudrate selection code
+  - atarixfer: added support for highspeed SIO
+  - atarisio: refactored a lot of common code
+  - atarisio: changed locking strategy to use a single lock
+  - dir2atr: added support for MyDos4.53/3
+  - atariserver, dir2atr: added support for stripping file extensions
+    when creating PICONAME.TXT
+  - dir2atr: added support for XDOS 2.43F and XDOS 2.43N
+  - fix compile errors with Ubuntu 9.10/glibc2.10
+  - ataricom: option to output file offsets and block length in hex
+  - atarisio/atariserver: support cas files with long blocks
+  - atarisio: experimental support for sending FSK data
+  - atariserver: support for CAS files with FSK blocks
+  - atarisio: added support for kernel >= 2.6.33
+  - atariserver: experimental support for 512byte/sector ATRs
+  - atariserver: loadable highspeed code now only supports ultraspeed mode,
+    updated highspeed code to 1.30-100925
+  - atariserver, dir2atr: updated MyPicoDos to 4.05-100925
+  - atarisio: added support for kernel 2.6.36
+  - atarixfer: added option to retry failed sector I/Os
+  - atarisio: removed lock_kernel for kernel >= 2.6.36
+  - atariserver: support creation of QD images
+  - included Gentoo ebuild files in contrib/gentoo, thanks to Oliver Jaksch!
+  - atarisio: remove include file smp_lock.h for kernel >= 2.6.36, fix compilation on 2.6.39
+  - atariserver: preliminary support for ATRs with 1/2/4/8k sector sizes
+  - atarisio: fix compilation issue with kernel 3.4
+  - fix compilation issues with gcc 2.95, static build and without debugging
+  - include ataricom in all-in-one version
+
+2014-02-23:
+  - atariserver, dir2atr: fix MyDos allowed characters, allow underscore
+    but forbid digit at beginning
+  - dir2atr: add MyPicoDos 4.04/4.05 autorun flag
+
+2014-02-27:
+  - dir2atr: add support for loading boot sector data from file
+
+2015-03-20:
+  - atarisio: fix compilation on kernel 3.19
+
+2015-03-25:
+  - tools-win32: use newer mingw to fix snprintf bug in ataricom
+
+2015-11-30:
+  - atarisio: fix compilation on kernel 4.3
+
+2016-03-12:
+  - atariserver, dir2atr: updated MyPicoDos to 4.06
+
+2017-07-02:
+  - atarisio: fix compilation on kernel 4.11
+  - atariserver: use pkg-config to get curses paths, fall back to ncursesw
+    if ncurses is not available
+  - adir: refactor option parsing
+
+2017-09-24:
+  - atarisio: fix compilation on kernel 4.13
+  - tools: update MyPicoDos to 4.06 release version
+
+2017-12-13:
+  - atarisio: fix compilation on kernel 4.14
+
+2018-05-08:
+  - tools: support (adir, ataricom, dir2atr) tools only build on
+    posix systems. See INSTALL-tools for details
+
+2018-10-09:
+  - atariserver: add experimental userspace SIO support for USB
+    serial adapters. This must be enabled manually at build time with
+    "make ENABLE_USERSPACE=1".
+    Only standard SIO and ultra speed protocols are supported.
+
+2018-10-16:
+  - atarisio: add support for PCIe based 16C950 cards
+  - atarisio: add ioctl to get optimal baud rates for given pokey divisor
+  - atarisio: refactor baud rate configuration, add optimized baudrates
+    for 16C950 cards
+  - atariserver: implement 1050-2-PC mode in userspace SIO driver
+  - atariserver: implement "no command line" configuration in userspace
+    SIO driver
+  - atariserver: enable userspace SIO driver by default
+
+2018-10-19:
+  - atariserver: improve userspace SIO timing
+  - include RPi devicetree overlays to enable rts+cts in contrib/rpi
+
+2018-10-25:
+  - add RPi DT overlays for original RPi2 with 26-pin GPIO header.
+    uart-rts enables only RTS on GPIO17, uart-ctsrts-p5 enables RTS
+    and CTS on the P5 pads
+  - atarisio: fix compilation on 4.4 and older kernels
+
+2018-10-30:
+  - atariserver: fix compilation with older gcc versions
+  - silence warnings/errors from pkg-config
+  - Makefile: rename USE_KBUILD_26 to USE_KBUILD, fix building with
+    USE_KBUILD=0
+  - atariserver/atarixfer: use termios2 ioctl only on non-standard speeds
+  - atariserver/atarixfer: fix error reporting on device init errors
+  - atariserver/atarixfer: allow setting default atarisio/serial device at
+    compile time.
+    The default /dev/atarisio0 can be changed by setting the DEFAULT_DEVICE
+    make variable, eg "make DEFAULT_DEVICE=/dev/ttyUSB0"
+  - atariserver: shorten labels in status line, display highspeed pokey divisor
+
+2018-11-01:
+  - atariserver/atarixfer: check command frame age before sending ACK/NAK
+  - atariserver/atarixfer: relax send and receive timing
+
+2018-11-11:
+  - atariserver: add '-Q' option to always ask before quitting
+  - Makefile: add 'rpi-install' target to install tools and device tree
+    overlay files
+  - atariserver: change options to select command line:
+    use '-C' for CTS and '-D' for DSR
+  - atarixfer: fix occasional errors with Happy 1050 drive
+  - atarixfer: add support for 1050 Turbo mode with Linux serial drivers
+    (requires strict SIO timing to be enabled)
+  - contrib/lotharek: add tool to switch Lotharek's 1050-2-PC/SIO2PC
+    interface to 1050-2-PC mode
+  - atarixfer: add '-l' option to select Lotharek's 1050-2-PC/SIO2PC interface
+  - implement "strict" and "relaxed" SIO timing modes.
+    The kernel driver defaults to "strict", Linux serial drivers default
+    to "relaxed" mode. Strict timing on Linux drivers is needed to get
+    1050 Turbo drives working with atarixfer.
+  - atariserver: drop "highspeed with pauses" mode with kernel driver
+    and make that available via "relaxed" SIO timing.
+  - atariserver, atarixfer: add '-T s' option to select strict SIO timing
+    and '-T r' to select relaxed SIO timing mode
+  - atariserver/atarixfer: userspace SIO implementation is now build always
+  - atariserver: rename tape baudrate option from '-T' to '-B
+  - atariserver: drop "tape emulation" key, CAS files can now be loaded
+    via "load drive" option which start tape emulation mode
+  - atarisio: fix tape mode after 16c950 changes
+  - rework documentation, add RPi and Lotharek 1050-2-PC USB interface docs
+  - atarixfer: drop '-S' option, add paramter to '-s' so XF551/Warp and
+    Ultra/Turbo highspeed modes and be enabled separately
+
+2018-11-13:
+  - atariserver/atarixfer: fix strict/relaxed SIO timing swapped with
+    kernel driver
+  - atariserver: fix issues with low pokey divisors on FTDI chips
+
+2019-01-11:
+  - dir2atr: set exit code to 1 if adding files from the directory failed
+    or if the estimated image size exceeds the 65535 sectors limit
+
+2019-01-11:
+  - README.RPi: fix wrong SIO GND pin number and clarify connection to
+    level shifter
+  - atarisio: use 19200/38400 bit/sec on 16c950 chips instead of exact
+    pokey rates
+  - remove outdated Gentoo ebuild file
+
+2019-02-11:
+  - include missing RPi device tree overlays
+  - dir2atr: add support for MyDOS 4.55 Beta4 and cleanup MyDOS boot sectors
+    to use a consistent configuration (only D1: configured, ramdisk on D9:)
+
+2019-02-20:
+  - atarisio: add MMIO support
+
+2019-03-13:
+  - atarisio: fix compilation on kernel 5.0
+  - atarixfer: add option to work around US Doubler format detection issues
+

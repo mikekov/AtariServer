@@ -1,0 +1,36 @@
+; support routines for debbuging using an external display
+; (c) 2005 Matthias Reichl
+
+.IF .DEF HWDEBUG
+
+.LOCAL
+
+; write hex character in A to position X,X+1
+SDBGHEX	PHA
+	LSR
+	LSR
+	LSR
+	LSR
+	TAY
+	LDA HEXTAB,Y
+	STA HWDISP,X
+	INX
+	PLA
+	AND #$0F
+	TAY
+	LDA HEXTAB,Y
+	STA HWDISP,X
+	INX
+	RTS
+
+HEXTAB	.BYTE "0123456789ABCDEF"
+
+SDBGCLR	LDX #0
+	LDA #32
+SDBGCLL	STA HWDISP,X
+	INX
+	CPX #8
+	BNE SDBGCLL
+	RTS
+
+.ENDIF

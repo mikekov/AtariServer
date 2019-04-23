@@ -1,0 +1,111 @@
+;  hipatch-code.src - 6502 high speed SIO code OS patch
+;
+;  Copyright (c) 2006-2009 by Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+;
+;  Changes:
+;  2008-06-26 Matthias Reichl
+;    - add (optional) keyboard IRQ patch
+;
+;  2009-02-10 Matthias Reichl
+;    - added NMI patch (for insane speeds)
+;
+;  2009-05-01 Matthias Reichl
+;    - added coldstart/powerup patch: SHIFT+RESET does a coldstart
+;    - rearranged memory layout to fit code into $CCxx
+;
+;  2010-08-14 Matthias Reichl
+;    - removed NMI patch (obsoleted by new fast VBI code)
+
+
+	.include "hisio.inc"
+	.include "hipatch.inc"
+
+	* = PDEST
+	.BYTE 0
+
+; patch program must fill this area with jump to standard SIO routine
+STDSIO	= PSTD
+
+	* = PPWRUP
+
+; powerup/reset code: do a cold boot if SHIFT is pressed
+
+	LDA #3
+	STA $D20F
+	LDA $D20F
+	AND #$0C
+	EOR #4
+	BEQ ?DOCOLD
+	LDA $033D	; original instruction at $C3B3, was patched with "JMP PBOOT"
+?DOCOLD	JMP PUPCODE+3
+
+	* = PSIO
+	
+.if .def PATCHKEY
+	LDA HIENAB
+	BNE STDSIO
+.endif
+	LDA DDEVIC
+	CMP #$31
+	BNE STDSIO
+	LDA DUNIT
+	BEQ STDSIO
+	CMP #9
+	BCS STDSIO
+
+	.include "hisiodet.src"
+	.include "hisiocode.src"
+
+.if .def PATCHKEY
+	* = PKEY
+
+	LDA $D209
+	CMP #$F4        ; shift-control-delete = coldstart
+	BNE PKEY1
+	JMP $E477
+PKEY1	PHA
+	CMP #$FE	; shift-control-s = reset all variables
+	BNE PKEY3
+	TXA
+	PHA
+	LDA #0
+	LDX #8		; HIENAB must be directly after speed table!
+PKEY2	STA SPEEDTB,X	; clear drive speed table
+	DEX
+	BPL PKEY2
+	PLA
+	TAX
+	JMP PKEYX
+
+PKEY3	CMP #$F9	; shift-control-H = enable highspeed SIO
+	BNE PKEY4
+	LDA #0
+	STA HIENAB
+	BEQ PKEYX
+
+PKEY4	CMP #$E3	; shift-control-N = normal speed SIO
+	BNE PKEYX
+	LDA #$FF
+	STA HIENAB
+	
+PKEYX	PLA
+	RTS
+.endif
+
+	* = PVER
+	.BYTE "Hias 1.30 100923"
+

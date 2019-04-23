@@ -1,0 +1,61 @@
+### Note: WORK IN PROGRESS ###
+
+
+# download Raspbian Stretch Lite from https://www.raspberrypi.org/downloads/raspbian/
+# unzip, use Etcher to write image to micro SD card
+# after flashing, configure OS
+# sudo raspi-config
+# 1. change user password
+# 2. network: hostname, connect wi-fi
+# 3. boot options: console autologin, wait for wi-fi at boot?
+# 4. interfacing options: enable SSH, no login over serial, enable hardware serial port
+
+sudo apt-get update
+sudo apt-get -y dist-upgrade
+
+# disable the ACT LED on the Pi Zero
+dtparam=act_led_trigger=none
+dtparam=act_led_activelow=on
+
+# build AtariServer
+
+# to build atariserver exec:
+apt-get install build-essential libncurses5-dev zlib1g-dev
+
+# install Atari assembler
+mkdir -p atasm
+cd atasm
+wget https://github.com/linuxha/atasm/archive/master.zip
+unzip master.zip
+cd src
+make && make install -> TODO verify
+cd ..
+
+make tools DEFAULT_DEVICE=/dev/ttyUSB0
+#sudo make tools-install
+# install AtariSIO tools and RPi device tree overlays
+sudo make rpi-install
+
+# configure RPi, add overlays in boot/config.txt
+dtoverlay=pi3-disable-bt
+dtoverlay=uart-ctsrts
+enable_uart=1 -> TODO verify if needed
+
+# to run flask web server:
+sudo apt-get install python3-pip
+sudo pip3 install flask
+
+# build web client and copy to web folder
+cd web-client
+npm run build
+mkdir -p web
+cp ./dist/atari-drive/*.* ./web
+
+# mount Atari files (floppy images, Atari xex)
+sudo mkdir /mnt/atari
+sudo mount 10.0.0.8:volume1/Archive/AtariGames/\!ATRs /mnt/atari/
+
+# to start flask server on start-up add it to:
+# /etc/rc.local as
+# python3 /path/to/script.py &
+

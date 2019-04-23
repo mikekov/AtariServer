@@ -1,0 +1,510 @@
+;  hipatch - 6502 high speed SIO code OS patch program
+;
+;  Copyright (c) by Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+;
+	.include "hipatch.inc"
+	.include "cio.inc"
+
+.bank
+
+.if .def ROMABLE
+PATCHRESET=1
+.endif
+
+.if .def ATRBOOT
+ORG	= $700
+.else
+ORG	= $6000
+.endif
+
+XLSIO	= $E971
+
+TMPVEC	= $E0	; temporary ZP vector
+
+.if .def ATRBOOT
+; ATR header
+	* = ORG-16
+	.WORD $0296 ; magic
+	.WORD (MYEND-ORG+15)/16
+	.WORD 128
+	.WORD 0,0,0,0,0
+
+; boot header
+	.BYTE 0
+	.BYTE (MYEND-ORG+127)/128
+	.WORD ORG
+	.WORD EXIT
+.else
+	* = ORG
+.endif
+
+	BPUT 0, TTITL, TTIT
+
+; check if OS is already patched
+	LDX #3
+CHKP	LDA XLSIO,X
+	CMP MYCODE,X
+	BNE CHKP1
+	DEX
+	BPL CHKP
+
+	PRINT 0, TISP
+	JSR CLRSIO
+
+	INC WARNING
+	JMP EXIT
+
+
+; just clear SIO settings
+CLRSIO	LDX #12
+	LDA #0
+CLRSIOL	STA RAMBUF,X
+	DEX
+	BPL CLRSIOL
+	RTS
+
+; check if OS is compatible
+
+CHKP1	LDX #3
+CHKCO	LDA XLSIO,X
+	CMP XLCODE,X
+	BNE CHKCO1
+	DEX
+	BPL CHKCO
+	BMI CHKCO2
+
+CHKCO1	PRINT 0, TINC
+	INC WARNING
+	JMP EXIT
+
+CHKCO2
+
+.IF .DEF ROMABLE
+; check if we need to update the ROM checksums
+	JSR CHKCSUM
+.ENDIF
+
+	PRINT 0, TPAT
+
+; check if we need to move ROM to RAM
+	LDA $D301
+	AND #$01
+	STA NEEDRES
+	BEQ NOCOPY
+	JSR ROMRAM
+
+; write highspeed SIO code to PDEST
+
+NOCOPY	LDX #0
+COPLP	LDA PCODE,X
+	STA PDEST,X
+	LDA PCODE+$100,X
+	STA PDEST+$100,X
+	LDA PCODE+$200,X
+	STA PDEST+$200,X
+	LDA PCODE+$300,X
+	STA PDEST+$300,X
+	INX
+	BNE COPLP
+
+; clear speed tab
+	JSR CLRSIO
+
+; patch OS SIO routine
+
+	LDX #3
+COP2	LDA XLSIO,X
+	STA PSTD,X
+	LDA MYCODE,X
+	STA XLSIO,X
+	DEX
+	BPL COP2
+
+	LDA #$4C
+	STA PSTD+4
+	LDA #<(XLSIO+4)
+	STA PSTD+5
+	LDA #>(XLSIO+4)
+	STA PSTD+6
+
+.if .def PATCHKEY
+; check if we can patch the keyboard IRQ handler
+
+	LDX #2
+CHKKY	LDA KEYIRQ,X
+	CMP XLKEY,X
+	BNE CHKKY1
+	DEX
+	BPL CHKKY
+	BMI CHKKY2
+
+CHKKY1	PRINT 0, TNOKEY
+	INC WARNING
+	JMP CHKKY4
+
+CHKKY2	LDX #2
+CHKKY3	LDA MYKEY,X
+	STA KEYIRQ,X
+	DEX
+	BPL CHKKY3
+
+	PRINT 0, TKEY
+
+CHKKY4
+
+.endif
+
+.if .def PATCHRESET
+; check if we can patch the powerup/reset code
+
+	LDX #2
+CHKBT	LDA PUPCODE,X
+	CMP XLPUP,X
+	BNE CHKBT1
+	DEX
+	BPL CHKBT
+	BMI CHKBT2
+
+CHKBT1	PRINT 0, TNOPUP
+	INC WARNING
+	JMP CHKBT4
+
+CHKBT2	LDX #2
+CHKBT3	LDA MYPUP,X
+	STA PUPCODE,X
+	DEX
+	BPL CHKBT3
+
+	PRINT 0, TPUP
+
+CHKBT4
+
+.endif
+
+
+.IF .DEF ROMABLE
+; update ROM checksums
+	JSR UPDCSUM
+.ENDIF
+
+	LDA NEEDRES
+	BEQ NORES
+
+; install reset handler
+
+	LDX #RESETL-1
+COPRES	LDA RESET,X
+	STA RESETAD,X
+	DEX
+	BPL COPRES
+
+	LDA #<RESETAD
+	STA 2
+	LDA #>RESETAD
+	STA 3
+	LDA 9
+	ORA #2
+	STA 9
+
+NORES	JMP EXIT
+
+NEEDRES	.BYTE 0
+WARNING	.BYTE 0
+
+	.include "romram.src"
+
+.if .def ATARISIO_SWAP
+	.include "atarisio.src"
+.endif
+
+; reset routine: 
+RESET	LDA $D20F
+	AND #8
+	BNE ?NOCOLD
+	JMP $E477	; do a coldstart if SHIFT is pressed
+?NOCOLD	LDA $D301
+	AND #$FE
+	STA $D301
+	RTS
+RESETL	= * - RESET
+
+EXIT
+.if .def ATRBOOT
+.if .def ATARISIO_SWAP
+	JSR SWAP_DRIVES
+	BCC EXITX
+.endif
+	BPUT 0, TBOOTL, TBOOT
+WCONSOL
+	LDA $D01F
+	CMP #6
+	BNE WCONSOL
+	LDA #155
+	JSR PUTCHR
+
+EXITX
+	LDA #<ORG
+	STA TMPVEC
+	LDA #>ORG
+	STA TMPVEC+1
+	LDY #CLEANUPL-1
+CPCLUP
+	LDA CLEANUP,Y
+	STA RESETAD+RESETL,Y
+	DEY
+	BPL CPCLUP
+	LDA #0
+	TAY
+	LDX #>(MYEND-ORG+255)
+	JMP RESETAD+RESETL
+
+CLEANUP	STA (TMPVEC),Y
+	INY
+	BNE CLEANUP
+	INC TMPVEC+1
+	DEX
+	BNE CLEANUP
+	SEC
+	RTS
+CLEANUPL	= * - CLEANUP
+
+PUTCHR
+	TAY
+	LDA $E407
+	PHA
+	LDA $E406
+	PHA
+	TYA
+	RTS
+.else
+; delay for approx. 2 seconds if some warning occurred
+	LDA WARNING
+	BEQ NODELAY
+	CLC
+	LDA 20
+	ADC #100
+W20	CMP 20
+	BNE W20
+NODELAY	RTS
+.endif
+
+XLCODE	TSX
+	STX $0318
+
+MYCODE	NOP
+	JMP PSIO
+
+.if .def PATCHKEY
+; original contents of keyboard IRQ handler
+XLKEY	LDA $D209
+
+; patched contents of keyboard IRQ handler
+MYKEY	JSR PKEY
+.endif
+
+.if .def PATCHRESET
+; original contents of reset code
+XLPUP	LDA $033D
+; patched contents of reset code
+MYPUP	JMP PPWRUP
+.endif
+
+.if .def ROMABLE
+
+ROM1ID	= $C000
+ROM2ID	= $FFF8
+
+CADR	= $E0
+CEND	= $E2
+CSUM	= $E4
+
+; calculate checksum of a ROM-block
+
+CSBLK	LDY #0
+CSSET	LDA ADRTAB,X
+	STA CADR,Y
+	INX
+	INY
+	CPY #4
+	BNE CSSET
+	LDY #0
+CSBLKL	CLC
+	LDA (CADR),Y
+	ADC CSUM
+	STA CSUM
+	BCC CSBLKL1
+	INC CSUM+1
+CSBLKL1	INC CADR
+	BNE CSBLKL2
+	INC CADR+1
+CSBLKL2	LDA CADR
+	CMP CEND
+	BNE CSBLKL
+	LDA CADR+1
+	CMP CEND+1
+	BNE CSBLKL
+	RTS
+
+; checksum of first 8k ROM
+
+CHK1	LDA #0
+	STA CSUM
+	STA CSUM+1
+	TAX
+	JSR CSBLK
+
+	LDA $D301
+	PHA
+	AND #$7F
+	ORA #1
+	STA $D301
+	JSR CSBLK
+
+	PLA
+	STA $D301
+	JSR CSBLK
+
+	RTS
+
+; checksum of second 8k ROM
+
+CHK2	LDA #0
+	STA CSUM
+	STA CSUM+1
+	LDX #12
+	JSR CSBLK
+	JSR CSBLK
+	RTS
+
+ADRTAB	.WORD $C002,$D000
+	.WORD $5000,$5800
+	.WORD $D800,$E000
+
+	.WORD $E000,$FFF8
+	.WORD $FFFA,$0000
+
+DOCSUPD	.BYTE 0
+
+CHKCSUM	LDA #0
+	STA DOCSUPD
+	JSR CHK1
+	LDA ROM1ID
+	CMP CSUM
+	BNE CSERR
+	LDA ROM1ID+1
+	CMP CSUM+1
+	BNE CSERR
+
+	JSR CHK2
+	LDA ROM2ID
+	CMP CSUM
+	BNE CSERR
+	LDA ROM2ID+1
+	CMP CSUM+1
+	BNE CSERR
+
+	INC DOCSUPD
+	RTS
+
+CSERR	BPUT 0, TCSERRL, TCSERR
+	RTS
+
+UPDCSUM	LDA DOCSUPD
+	BEQ UPDCSE
+
+	PRINT 0, TUPDCS
+
+	JSR CHK1
+	LDA CSUM
+	STA ROM1ID
+	LDA CSUM+1
+	STA ROM1ID+1
+
+	JSR CHK2
+	LDA CSUM
+	STA ROM2ID
+	LDA CSUM+1
+	STA ROM2ID+1
+
+UPDCSE	RTS
+
+TCSERR	.BYTE "ROM checksum error - skipping",155
+	.BYTE "checksum update", 155,155
+TCSERRL	= * - TCSERR
+
+TUPDCS	.BYTE "updating ROM checksum",155
+
+.endif
+
+.if .def PATCHKEY
+TNOKEY	.BYTE "unknown ROM, not patching keyboard",155
+TKEY	.BYTE "patched keyboard IRQ handler",155
+.endif
+
+.if .def PATCHRESET
+TNOPUP	.BYTE "unknown ROM, not patching powerup code",155
+TPUP	.BYTE "patched powerup code",155
+.endif
+
+.if .def ROMABLE
+TTIT
+.if .def ATRBOOT
+	.BYTE 125
+.else
+	.BYTE 155
+.endif
+	.BYTE "Highspeed SIO patch V1.30R",155
+.else
+TTIT
+.if .def ATRBOOT
+	.BYTE 125
+.else
+	.BYTE 155
+.endif
+	.BYTE "Highspeed SIO patch V1.30",155
+.endif
+	.BYTE "(c) 2010 by Matthias Reichl",155,155
+TTITL	= * - TTIT
+
+.if .def ATRBOOT
+TBOOT	.BYTE 155,"Press START to boot disk"
+TBOOTL	= * - TBOOT
+.endif
+
+TISP	.BYTE "OS already patched",155
+TINC	.BYTE "incompatible OS",155
+TPAT	.BYTE "patching OS",155
+
+PCODE	= *
+
+.if .def ROMABLE
+	.incbin "hipatch-code-rom.bin"
+.else
+	.incbin "hipatch-code.bin"
+.endif
+
+.if .def ATRBOOT
+.if (*&127)<>0
+	.dc (128-(*&127)) 0
+.endif
+MYEND	= *
+.else
+.bank
+
+	* = $2E0
+	.WORD ORG
+.endif

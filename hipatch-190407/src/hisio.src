@@ -1,0 +1,153 @@
+;  highsio.src - 6502 high speed SIO code
+;
+;  Copyright (c) 2003-2009 by Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+;
+;  Changes:
+;  2003-03-27 Matthias Reichl
+;    - converted to Atasm source code format
+;    - support for 8 (instead of 4) drives (*)
+;    - use SETVBV instead of setting CDTMV1 directly (*)
+;    - return 1 instead of 0 on success (*)
+;    - added relocator table (*)
+;    (*) thanks to Erhard Puetz for these fixes!
+;
+;  2004-01-19 Matthias Reichl
+;    - removed relocator table for use with MyPicoDos
+;
+;  2004-01-22 Matthias Reichl
+;    - changed all labels to local labels
+;
+;  2004-10-03 Matthias Reichl
+;    - code merge with AtariSIO
+;    - relocator table is generated if RELOCTABLE is defined
+;    - moved definition of SIOADR out of this file
+;
+;  2005-08-15 Matthias Reichl
+;    - added support for 1050 Turbo and XF551
+;
+;  2005-09-19 Matthias Reichl
+;    - fixed Happy/Speedy bug introduced in last version
+;    - code cleanup
+;    - hispeed routine now honors value of SOUNDR
+;
+;  2006-05-01 Matthias Reichl
+;    - fixed sporadic errors 139 with APE
+;    - support for Happy 810 warp speed
+;
+;  2007-09-17 Matthias Reichl
+;    - rewrote almost all old code, moved ZP memory addresses
+;      to fix TurboDos issues
+;
+;  2007-10-07 Matthias Reichl
+;    - fixed timeout handling, CLRTIM1 is now called after
+;      receiving the whole data frame
+;
+;  2008-06-26 Matthias Reichl
+;    - always configure happy drives to use fast writes
+;      thanks to ijor for pointing out that otherwise the happy
+;      might corrupt data when writing to the disk!
+;
+;  2008-09-05 Matthias Reichl
+;    - added ?ABSxx labels to make the code relocatable again
+;
+;  2009-02-10 Matthias Reichl
+;    - inlined checksum calculation into GETBLK to save
+;      a few cycles
+;    - added optional NMI patch to increase maximum speed
+;      up to 110kbit/sec (pokey divisor 1)
+;
+;  2009-02-12 Matthias Reichl
+;    - fix endless loop if device sends a speed byte of 0
+;
+;  2009-03-10 Matthias Reichl
+;    - add support for pokey divisor 0
+;    - implemented fast NMI code to solve overruns at divisor 0
+;    - move GETBYTE into read data block loop to speed up the code
+;    - implemented fast VBI code to make divisor 1 work reliably
+;      without having to patch the OS
+;
+;  2009-05-01 Matthias Reichl
+;    - speedup determining the highspeed mode (reduces time when
+;      accessing a stock or non-existant drive for the first time)
+;    - updated relocator table to include recent code changes
+;
+;  2010-08-14 Matthias Reichl
+;    - optimized fast VBI code, NMI patch is now obsolete (and removed)
+
+
+	.include "hisio.inc"
+
+	* = START
+
+.if .def BEWEPATCH
+STDSIO	JMP $E459
+
+        LDA DDEVIC
+        CMP #$31
+        BNE STDSIO
+        LDA DUNIT
+        BEQ STDSIO
+        CMP #5
+        BCS STDSIO
+.endif
+
+	.include "hisiodet.src"
+	.include "hisiocode.src"
+
+HIBUF	.DC 4 0
+SIOSPEED        .BYTE 0
+SPEEDTB .DC 8 0
+
+.if .def RELOCTABLE
+; absolute addresses from hisiodet:
+; note: ABS21 must be WITHOUT +1!
+RELOC	.WORD ?ABS01+1, ?ABS02+1, ?ABS03+1, ?ABS04+1, ?ABS05+1
+	.WORD ?ABS06+1, ?ABS07+1, ?ABS08+1, ?ABS09+1, ?ABS10+1
+	.WORD ?ABS11+1
+.if .not .def USONLY
+	.WORD ?ABS12+1, ?ABS13+1, ?ABS14+1, ?ABS15+1, ?ABS16+1
+.endif
+	.WORD ?ABS17+1
+.if .not .def USONLY
+	.WORD ?ABS18+1
+.endif
+	.WORD ?ABS19+1, ?ABS20+1
+	.WORD ?ABS21
+; absolute addresses from hisiocode:
+; note: ABS67 must be WITHOUT +1!
+	.WORD ?ABS50+1, ?ABS51+1, ?ABS52+1, ?ABS53+1, ?ABS54+1
+	.WORD ?ABS55+1, ?ABS56+1, ?ABS57+1, ?ABS58+1, ?ABS59+1
+	.WORD ?ABS60+1, ?ABS61+1, ?ABS62+1, ?ABS63+1
+
+.if .not .def NOCKSUM
+	.WORD ?ABS64+1
+.endif
+	.WORD ?ABS68+1, ?ABS69+1
+	.WORD ?ABS70+1, ?ABS71+1, ?ABS72+1, ?ABS73+1, ?ABS74+1
+
+.if .def FASTVBI
+; note: ABSF08 must be WITHOUT +1!
+	.WORD ?ABSF01+1, ?ABSF02+1, ?ABSF03+1, ?ABSF04+1
+	.WORD ?ABSF05+1, ?ABSF06+1, ?ABSF07+1, ?ABSF08
+.else
+	.WORD ?ABS65+1, ?ABS66+1, ?ABS67
+.endif
+
+RLEN	.WORD *-RELOC
+
+.endif
+

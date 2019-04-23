@@ -1,0 +1,57 @@
+<ng-template #turbo>
+	<span>Turbo&nbsp;</span>
+	<div class="button-well">
+		<button class="radio-button" [class.active]="_turbo==0" (click)="setTurbo(0)">OFF</button>
+		<button class="radio-button" [class.active]="_turbo==1" (click)="setTurbo(1)">ON</button>
+		<button class="radio-button" [class.active]="_turbo==2" (click)="setTurbo(2)">HIGH</button>
+	</div>
+</ng-template>
+
+<ng-template #search>
+	<div class="search-box">
+		<svg class="icon"><use xlink:href="#icon-zoom"/></svg>
+		<input #searchbox type="text" class="search-input" [value]="_filter" (input)="filterChanged(searchbox.value)">
+		<button class="clear-btn" (click)="clearFilter()">
+			<svg class="icon"><use xlink:href="#icon-delete"/></svg>
+		</button>
+	</div>
+</ng-template>
+
+<main class="main">
+<section class="header">
+	<section class="drive-block">
+		<ata-drive class="drive-cell" [scale]="1.2" [floppy]="currentFile" [filename]="'D1:' + getFileName(currentFile?.name)"></ata-drive>
+		<div class="drive-info">
+			<div class="pill"><span class="small-font">D1</span></div>
+			<p class="file-info">{{getFileName(currentFile?.name)}}<span class="file-ext">{{getFileNameExt(currentFile?.name)}}</span></p>
+		</div>
+		<section class="header-settings">
+			<ng-container *ngTemplateOutlet="turbo"></ng-container>
+		</section>
+	</section>
+	<section class="tabs">
+		<button class="tab-button" [class.active]="_tab==0" (click)="selectTab(0)">All Files</button>
+		<div class="vert-divider"></div>
+		<button class="tab-button" [class.active]="_tab==1" (click)="selectTab(1)">Recent</button>
+		<div class="vert-divider"></div>
+		<button class="tab-button" [class.active]="_tab==2" (click)="selectTab(2)">Favorites</button>
+	</section>
+</section>
+
+<section class="list">
+	<ng-container *ngTemplateOutlet="search"></ng-container>
+	<virtual-scroller #scroll class="file-list" [items]="getFiles()">
+		<button *ngFor="let item of scroll.viewPortItems" class="file-item" [class.active]="item.id === currentFile?.id" (click)="selectFile(item)">
+			<span class="secondary">{{item.id}}. </span><span class="primary">{{getFileName(item.name)}}</span><span class="secondary">{{getFileNameExt(item.name)}}</span>
+		</button>
+	</virtual-scroller>
+</section>
+
+<section class="footer">
+	<ng-container *ngTemplateOutlet="search"></ng-container>
+	<div class="horizontal-flex">
+		<ng-container *ngTemplateOutlet="turbo"></ng-container>
+		<span class="hidden">Turbo&nbsp;</span>
+	</div>
+</section>
+</main>

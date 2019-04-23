@@ -1,0 +1,560 @@
+;  Highspeed SIO diagnostics
+;
+
+NOKEY=1
+
+.if .def DIAG_WRITE
+TCMD	= 'P
+TDIR	= $80
+RNDBUF	= 1
+.else
+TCMD	= 'R
+TDIR	= $40
+.endif
+
+.if .not .def SHIPDIAG
+
+; ------------------------------------------------------------
+; begin: my own testing parameters
+
+
+; disable retries and fallback to standard speed
+; (even in non-diag mode)
+; DIAGNORET = 1
+; DIAGTX = 1
+; diag specific timing problems
+; DIAGTP = 1
+
+DIAGNORET = 1
+DIAGTX = 1
+;DIAGSIO = 1
+;DIAGTIM	= 1
+FASTVBI = 1
+
+;DIAGTP = 1
+;CLK1 = $FF
+;CLK2 = $FF
+;CLK3 = $FF
+
+;LCNT = $56	; causes timeout with 94 NMI cycles
+;DELCNT = 5
+
+;LCNT = $56
+;LCNT = $85
+;LCNT = $15
+;LCNT1 = 1 ; add one "STA WSYNC"
+
+; use a fixed timout value, for worst-case testing
+;FIXTOUT = $201
+
+;FASTVBI_NOCLOCK = 1
+
+; use immediate VBI ($222) instead of patching NMI handler
+;FASTVBI = 1
+
+; DIAGSIO = 1
+; DIAGTIM	= 1
+
+; DMADEF=0 ; screen off
+; DMADEF=$23 ; wide playfield
+;DMADEF=$26 ; normal PF, missile DMA
+;DMADEF=$36 ; normal PF, missile DMA, single line resolution
+;DMADEF=$2A ; normal PF, player DMA
+
+; SCREENOFF = 1
+
+; clear buffer before every SIO call
+; CLRBUF=1
+
+; DIAGSIO = 1
+
+; diag timing (in highspeed code)
+; DIAGTIM	= 1
+
+; NONMI = 1
+
+; USEDLI = 1
+
+; don't do checksumming
+; NOCKSUM = 1
+
+; diag timing (out of highspeed code)
+;DIAGTX = 1
+
+
+; initial clock values
+; CLK1 = $FF
+; CLK2 = $FF
+; CLK3 = $FF
+
+; lcount value
+;LCNT = $8E
+
+; short additional delay loop: DELCNT*5-1 cycles
+;DELCNT = 80
+
+DRIVENO = 2
+
+; store random data in buffer
+;RNDBUF	= 1
+
+;TBYT	= $80
+TBYT	= $100
+
+; end: my own testing parameters
+; ------------------------------------------------------------
+
+.else
+
+; default testing parameters, included for testing in dist
+
+DRIVENO = 2
+
+;TBYT	= $80
+TBYT	= $100
+
+.if SHIPDIAG=1
+; do timing tests with unmodified SIO code
+DIAGNORET = 1
+DIAGTX = 1
+FASTVBI = 1
+.endif
+
+.if SHIPDIAG=2
+; test with all diags in SIO code
+DIAGSIO = 1
+DIAGTIM	= 1
+FASTVBI = 1
+.endif
+
+.endif
+
+
+	.include "cio.inc"
+	.include "hisio.inc"
+
+START	= $1000
+BUF	= $0800
+
+TMPVEC	= $E0
+
+NMIEN	= $D40E
+
+.if .def USEDLI
+DEFNMI	= $C0
+.else
+DEFNMI	= $40
+.endif
+
+	* = START-16
+
+;************************************
+; ATR file header
+
+	.WORD $0296 ; magic
+	.WORD (END-START+15)/16
+	.WORD 128
+	.WORD 0,0,0,0,0
+
+
+;************************************
+; boot header complete file
+
+	.BYTE 0
+	.BYTE (END-START+127)/128
+	.WORD START
+	.WORD XRTS
+       
+	LDA #MSKRECV
+	STA $A0
+	STA $0600
+
+	LDA #0
+	STA 580
+	LDA #2
+	STA 9
+	LDA #<RUN
+	STA 2
+	LDA #>RUN
+	STA 3
+
+RUN	LDA #0
+	STA $301
+	JSR HISIO ; clear speed table
+
+.if .def USEDLI
+	LDA #0
+	STA NMIEN
+	LDA #<DLI
+	STA $200
+	LDA #>DLI
+	STA $201
+	LDA $230
+	STA TMPVEC
+	LDA $231
+	STA TMPVEC+1
+.if 0
+	LDY #2
+	LDA (TMPVEC),Y
+	ORA #$80
+	STA (TMPVEC),Y
+	INY
+	LDA (TMPVEC),Y
+	ORA #$80
+	STA (TMPVEC),Y
+
+	LDY #6
+?DLILP	LDA (TMPVEC),Y
+	ORA #$80
+	STA (TMPVEC),Y
+	INY
+	CPY #28
+	BNE ?DLILP
+.endif
+
+	LDY #10
+	LDA (TMPVEC),Y
+	ORA #$80
+	STA (TMPVEC),Y
+
+	LDA #DEFNMI
+	STA NMIEN
+.endif
+
+
+; set SIO parameters for D2:
+
+	LDA #$31
+	STA $300
+	LDA #DRIVENO
+	STA $301
+	LDA #7
+	STA $306
+
+; read sectors 4-720 in a loop forever
+
+DOTEST
+; print menu screen
+; drive number
+	LDA #DRIVENO+$30
+	STA MDRIV
+;density
+.if TBYT = $80
+	LDA #'S
+.else
+	LDA #'D
+.endif
+	STA MDENS
+
+	BPUT 0, MLEN, MTXT
+
+.if .not .def NOKEY
+	JSR GETKEY	; wait for a keypress first
+	CMP #27
+	BNE NOBOOT
+	JMP $E477
+.endif
+
+NOBOOT	LDA #TCMD
+	STA $302
+	LDA #<TBYT
+	STA DBYTLO
+	LDA #>TBYT
+	STA DBYTHI
+
+	LDA #<BUF
+	STA DBUFLO
+	LDA #>BUF
+	STA DBUFHI
+
+; reset run-counter
+	LDA #0
+	STA RUNCNT
+	STA RUNCNT+1
+	STA RUNCNT+2
+
+.if .def DMADEF
+	LDA #DMADEF
+	STA 559
+	STA $D400
+.endif
+
+TLOOP0	
+	LDA #4
+	STA DAUX1
+	LDA #0
+	STA DAUX2
+
+TLOOP	LDA 53279
+	CMP #6
+	BEQ TLOOP
+
+	INC RUNCNT
+	BNE RUN1
+	INC RUNCNT+1
+	BNE RUN1
+	INC RUNCNT+2
+RUN1
+
+	LDA #TDIR
+	STA $303
+
+	LDA #0
+	STA NMIEN
+
+.if .def CLRBUF
+	LDA #0
+	TAY
+CLRLP	STA BUF,Y
+	INY
+	BNE CLRLP
+.endif
+
+.if .def RNDBUF
+	LDY #0
+CLRLP	LDA $D20A
+	STA BUF,Y
+	INY
+	BNE CLRLP
+.endif
+
+.if .def DIAGTP
+
+	LDA #CLK3
+	STA 20
+	LDA #CLK2
+	STA 19
+	LDA #CLK1
+	STA 18
+
+; now wait for the right screen line
+.if .def LCNT
+	LDX #LCNT-1
+?WTLC1	CPX VCOUNT
+	BNE ?WTLC1
+	INX
+?WTLC2	CPX VCOUNT
+	BNE ?WTLC2
+.if .def LCNT1
+	STA WSYNC
+.endif
+.endif
+
+.if .def DELCNT
+	LDX #DELCNT
+?WTDEL	DEX
+	BNE ?WTDEL
+.endif
+
+.endif
+
+.if .def DIAGTX
+; record current timestamp
+        LDA 18
+        STA TSTAMP
+        LDA 19
+        STA TSTAMP+1
+        LDA 20
+        STA TSTAMP+2
+        LDA $D40B
+        STA TSTAMP+3
+.endif
+
+.if .not .def NONMI
+	LDA #DEFNMI
+	STA NMIEN
+.endif
+
+	JSR HISIO
+
+.if .def DIAGSIO
+	JSR PDIAG
+.endif
+	LDA 53279
+	CMP #3
+	BEQ TEND
+
+	LDA $303
+	BMI TEND
+
+	INC DAUX1
+	BNE TLOOP1
+	INC DAUX2
+TLOOP1	LDA DAUX2
+	CMP #2
+	BNE TLOOP
+	LDA DAUX1
+	CMP #$D1
+	BNE TLOOP
+	JMP TLOOP0
+
+TEND	LDA #$22
+	STA 559
+	LDA #DEFNMI
+	STA NMIEN
+
+	BPUT 0, TRUNL, TRUN
+	LDA RUNCNT+2
+	JSR PHEX
+	LDA RUNCNT+1
+	JSR PHEX
+	LDA RUNCNT
+	JSR PHEX
+	LDA #155
+	JSR PUTCHR
+
+.if .def DIAGTX
+	LDA TSTAMP
+	JSR PHEX
+	LDA TSTAMP+1
+	JSR PHEX
+	LDA TSTAMP+2
+	JSR PHEX
+	LDA #'.
+	JSR PUTCHR
+	LDA TSTAMP+3
+	JSR PHEX
+	LDA #':
+	JSR PUTCHR
+	LDA #32
+	JSR PUTCHR
+	LDA $303
+	JSR PHEX
+	LDA #155
+	JSR PUTCHR
+.endif
+
+TEND2	BPUT 0, TAGAL, TAGA
+
+	JSR GETKEY
+
+	CMP #27
+	BNE NOBOOT2
+	JMP $E477
+
+NOBOOT2
+
+	JMP RUN
+
+
+XRTS	RTS
+
+PHEX	PHA
+        LSR
+        LSR
+        LSR
+        LSR
+        TAX
+        LDA HEXTAB,X
+        JSR PUTCHR
+        PLA
+        AND #$0F
+        TAX
+        LDA HEXTAB,X
+
+PUTCHR	TAY
+        LDA $E407
+        PHA
+        LDA $E406
+        PHA
+        TYA
+        RTS
+
+HEXTAB .BYTE "0123456789ABCDEF"
+
+TSTAMP	.DC 4 0
+
+GETKEY  LDA $E425
+	PHA
+	LDA $E424
+	PHA
+	RTS
+
+.if .def USEDLI
+DLI	PHA
+	LDA $D40B
+	STA $D40A
+	STA $D01A
+	PLA
+	RTI
+.endif
+
+MTXT	.BYTE 125
+	.BYTE "highspeed SIO test 2018-10-30",155
+.if .def SHIPDIAG
+.if SHIPDIAG = 1
+	.BYTE "basic "
+.if .def DIAG_WRITE
+	.BYTE "write "
+.else
+	.BYTE "read "
+.endif
+	.BYTE "test, fast VBI",155
+.endif
+.if SHIPDIAG = 2
+	.BYTE "extended "
+.if .def DIAG_WRITE
+	.BYTE "write "
+.else
+	.BYTE "read "
+.endif
+	.BYTE "test, fast VBI",155
+.endif
+.else
+	.BYTE "custom "
+.if .def DIAG_WRITE
+	.BYTE "write "
+.else
+	.BYTE "read "
+.endif
+	.BYTE "test",155
+.endif
+.if .def NOKEY
+	.BYTE 155, "testing "
+MDENS	.BYTE "SD disk in D"
+MDRIV	.BYTE "0:",155
+
+	.BYTE 155, "press OPTION to stop test"
+
+.else
+	.BYTE 155,"insert "
+MDENS	.BYTE "SD disk into D"
+MDRIV	.BYTE "0: and",155
+	.BYTE "press any key, ESC=reboot"
+.endif
+	.BYTE 155,155
+
+MLEN	= * - MTXT
+
+TAGA	.BYTE 155, "press ESC to reboot or any",155
+	.BYTE "other key to restart test",155
+TAGAL	= * - TAGA
+
+TRUN	.BYTE "runs: "
+TRUNL	= * - TRUN
+
+RUNCNT	.BYTE 0,0,0
+
+; assemble highspeed code at identical page-boundaries as hipatch code
+
+	.IF (*&255)<>0
+	.DC (256-(*&255)) 0
+	.ENDIF
+
+HIBUF   .DC 4 0
+SIOSPEED        .BYTE 0
+SPEEDTB .DC 8 0
+
+	.DC 19 0
+	.DC 21 0
+
+	* = $1335
+
+	.include "hisiodet.src"
+	.include "hisiocode.src"
+
+	.IF (*&127)<>0
+	.DC (128-(*&127)) 0
+	.ENDIF
+
+END	= *

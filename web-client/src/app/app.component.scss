@@ -1,0 +1,348 @@
+@import "../styles";
+@import "../colors";
+
+
+.main {
+	width: 100%;
+	height: 100%;
+	display: grid;
+	grid-template-areas:
+		"header"
+		"list"
+		"footer";
+	grid-template-columns: 1fr;
+	grid-template-rows: auto 1fr auto;
+	background-color: $color-background;
+}
+
+.header {
+	grid-area: header;
+	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	// align-items: center;
+	// padding: 5px 2px 6px 12px;
+	// box-shadow: 0 0 3px rgba(0,0,0,0.45);
+	// z-index: 10;
+	// & > button {
+		// flex: 0 0 auto;
+	// }
+	background-color: $color-header;
+	color: $color-header-text;
+	// height: 135px;
+	width: 100vw;
+	// overflow: hidden;
+	margin-bottom: 0.5em;
+}
+
+.drive-cell {
+	justify-self: center;
+	// reduced drive icon size for smart phones
+	height: 65px;
+	margin: 0.5em 0 -3px 0;
+}
+
+$el-margin: 0.2em;
+$ui-well: 2.0em;
+$row-space: 0.5em;
+$top-space: 16px;
+
+.drive-info {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: baseline;
+	margin-top: $top-space;  // breathing space at the top
+}
+
+.header-settings {
+	// on a phone settings are in the footer
+	display: none;
+	align-items: baseline;
+	margin: $top-space 1em 0 1em;
+}
+
+.drive-block {
+	display: flex;
+	justify-self: stretch;
+	max-width: 800px; // stop stretching, it gets too wide
+	width: 100%;
+}
+
+.small-font {
+	font-size: 0.8em;
+}
+
+.pill {
+	height: $ui-well;
+	padding: 0.2em;
+	background-color: $color-background;
+	color: $color-secondary-text;
+	border-radius: $ui-well/2;
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+	padding: 0 0.5em;
+}
+
+.file-info {
+	color: $color-header-text;
+	margin: 0 0 0 0.5em;
+	max-height: 5em;
+	overflow: hidden;
+	line-height: 1.25;
+}
+
+.file-ext {
+	color: $color-header-secondary-text;
+}
+
+.button-well {
+	padding: 0.2em;
+	background-color: $color-background;
+	border-radius: $ui-well/2;
+	display: inline-flex;
+	justify-content: center;
+}
+
+.options {
+	grid-area: options;
+	justify-self: end;
+	margin-right: $el-margin;
+}
+
+.radio-button {
+	@extend .push-btn;
+	@extend .small-font;
+	height: 2em;
+	margin: 0 0.6em;
+	border-radius: 1em;
+	background-color: $color-background;
+	color: $color-secondary-text;
+	padding: 0.2em 0.8em;
+	&.active {
+		color: $color-background;
+	}
+	&:first-child, &:last-child {
+		margin: 0;
+	}
+}
+
+.hidden {
+	visibility: hidden;
+}
+
+.label {
+	margin-right: $el-margin;
+}
+
+.tabs {
+	margin: 0 0.5em 1px 0.5em;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex: 1 0 auto;
+}
+
+.vert-divider {
+	height: 1.2em;
+	min-width: 3px;
+	max-width: 4em;
+	flex: 1 1 auto;
+	position: relative;
+	&:before {
+		content: '';
+		position: absolute;
+		left: 50%;
+		top: 0;
+		bottom: 0;
+		width: 3px;
+		background-color: $color-header-secondary-text;
+	}
+}
+
+button.tab-button {
+	@extend .atari;
+	padding: 3px 5px;
+	background-color: $color-header;
+	color: $color-header-secondary-text;
+	border: 0;
+	position: relative;
+	&.active {
+		color: $color-header-text;
+		&::before {
+			content: '';
+			position: absolute;
+			left: 40%;
+			bottom: -0.5em;
+			width: 0;
+			height: 0;
+			border-top: 0.5em solid $color-header;
+			border-left: 0.6em solid transparent;
+			border-right: 0.6em solid transparent;
+		}
+	}
+	&:active {
+		transform: translate(1px, 1px);
+	}
+}
+
+.list {
+	grid-area: list;
+	padding: 1px 0.75em 0 0.75em;
+	display: flex;
+	flex-flow: column;
+	min-height: 10px;
+
+	& > .search-box {
+		display: none; // hide this search box on a phone
+	}
+}
+
+.primary {
+	color: $color-text;
+}
+
+.secondary {
+	color: $color-dim-text;
+}
+
+.search-box {
+	width: 80%;
+	max-width: 500px; // looks silly when too wide
+	height: $ui-well;
+	align-self: center; // center itself when in a tablet/wide mode
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	margin-bottom: $row-space;
+	padding: 0 0.6em;
+	background: $color-background;
+	color: $color-text;
+	border-radius: 1em;
+}
+
+.clear-btn {
+	display: flex;
+	justify-content: center;
+	padding: 0;
+	border-radius: 50%;
+	border: 0;
+	width: $ui-well;
+	height: $ui-well;
+	background-color: inherit;
+}
+
+.search-input {
+	@extend .atari;
+	font-size: 1em;
+	flex: 1 1 auto;
+	min-width: 50px;
+	padding: 0 0.5em;
+	background: $color-background;
+	color: $color-text;
+	border: 0;
+}
+
+.icon {
+	fill: $color-secondary-text;
+	flex: 0 0 auto;
+	width: 1.4em;
+	height: 1.4em;
+}
+
+.file-list {
+	flex: 1 1 auto;
+	list-style-type: none;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.file-item {
+	@extend .atari;
+	font-size: 1em;
+	display: inline-block;
+	text-align: left;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	background-color: $color-background;
+	color: $color-dim-text;
+	border: 0;
+	text-decoration: none;
+	padding: 0.25em 3px;
+	margin: 0;
+	width: 100%;
+	height: 1.8em;
+	&.active {
+		background-color: $color-active;
+	}
+	&:hover {
+		background-color: rgba($color-text, 0.1);
+		&.active {
+			background-color: $color-active;
+		}
+	}
+}
+
+.horizontal-flex {
+	display: flex;
+	justify-content: center;
+	align-items: baseline;
+	margin-bottom: $row-space;
+}
+
+.footer {
+	grid-area: footer;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: flex-start;
+	align-content: flex-start;
+	background-color: $color-active-gray;
+	padding: 0.5em;
+	padding-bottom: 0;
+}
+
+@media (min-width: 600px) {
+	.file-item {
+		width: 50%;
+	}
+	.drive-cell {
+		height: 85px;
+		margin-bottom: -20px;
+	}
+	.footer {
+		display: none;
+	}
+	.header-settings {
+		display: flex;
+	}
+	.search-box, .search-input {
+		background-color: $color-active-gray;
+	}
+	.list > .search-box {
+		display: flex;
+	}
+}
+
+@media (min-width: 900px) {
+	.file-item {
+		width: 33%;
+	}
+}
+
+@media (min-width: 1200px) {
+	.file-item {
+		width: 25%;
+	}
+}
+
+@media (min-width: 1600px) {
+	.file-list {
+		width: 80%;
+		margin-left: 10%;
+		margin-right: 10%;
+	}
+}
