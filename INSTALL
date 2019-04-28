@@ -19,13 +19,13 @@ unzip master.zip
 rm master.zip
 ./AtariServer-master/install.sh
 
-# to make Atari files available to AtariServer, we can mount a network location
-# here Synology share at 192.0.0.10 is mounted; substitue with your own:
+# to make Atari files available to AtariServer, we can mount a network location;
+# here Synology share at 192.0.0.10 is mounted; substitue with your own share:
 sudo mount 192.0.0.10:volume1/Archive/Atari /mnt/atari/
 # if that works, add it to fstab:
 sudo sh -c "echo '192.0.0.10:volume1/Archive/Atari /mnt/atari/ nfs4' >> /etc/fstab"
 
-# or copy Atari floppy images (*.ATR) to an SD card directly:
+# alternatively, copy Atari floppy images (*.ATR) to an SD card directly:
 # copy *.ATR into /home/pi/files
 
 # reboot RPi, done

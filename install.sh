@@ -43,6 +43,8 @@ sudo mkdir -p /mnt/atari
 # or copy them to SD card
 # note: if there are files in mounted location, then ~/files are not used
 mkdir -p ~/files
+# copy some example file(s)
+cp ./atr/* ~/files/
 
 # to start flask server on start-up add it to /etc/rc.local
 grep -qxF 'python3 /home/pi/AtariServer-master/flask/atari-web-server.py /home/pi/files &' /etc/rc.local || sudo sed -i -e '$i python3 /home/pi/AtariServer-master/flask/atari-web-server.py /home/pi/files &\n' /etc/rc.local
