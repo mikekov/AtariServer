@@ -3,7 +3,7 @@ from flask import Flask, request, send_from_directory, jsonify
 app = Flask(__name__, static_url_path='', static_folder='web')
 
 atari = None
-server = '/home/pi/atarisio/tools/atariserver'
+server = 'atariserver'
 pokeyDivisor = 40
 turboOn = 0
 lastFile = ''
@@ -84,7 +84,7 @@ def setTurbo():
     global turboOn
     pokeyDivisor = div
     turboOn = enable
-    startServer(lastFile, True, div, enable)
+    startServer(lastFile, False, div, enable)
     global atari
     return 'ok' if atari else 'error'
 

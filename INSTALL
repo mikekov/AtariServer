@@ -1,4 +1,4 @@
-### Note: WORK IN PROGRESS ###
+# AtariServer installation notes #
 
 
 # download Raspbian Stretch Lite from https://www.raspberrypi.org/downloads/raspbian/
@@ -13,43 +13,63 @@
 sudo apt-get update
 sudo apt-get -y dist-upgrade
 
-# disable the ACT LED on the Pi Zero
-dtparam=act_led_trigger=none
-dtparam=act_led_activelow=on
+# to download main AtariServer package:
+wget https://github.com/mikekov/AtariServer/archive/master.zip
+unzip master.zip
+rm master.zip
+./AtariServer-master/install.sh
 
-# build AtariServer
+##########################
 
-# to build atariserver exec:
-apt-get install build-essential libncurses5-dev zlib1g-dev
+# build AtariServer components one by one
+
+# to build atariserver executable, install required dependencies:
+sudo apt-get -y install build-essential libncurses5-dev zlib1g-dev
 
 # install Atari assembler
-mkdir -p atasm
-cd atasm
 wget https://github.com/linuxha/atasm/archive/master.zip
 unzip master.zip
-cd src
-make && make install -> TODO verify
-cd ..
+rm master.zip
+cd atasm-master/src
+make
+# one step in installation fails to copy missing documentation file; ignore it
+sudo make install || true
+cd ../..
 
-make tools DEFAULT_DEVICE=/dev/ttyUSB0
+# build atariserver executable
+cd AtariServer-master/atarisio
+make tools DEFAULT_DEVICE=/dev/ttyAMA0
 #sudo make tools-install
 # install AtariSIO tools and RPi device tree overlays
 sudo make rpi-install
+cd ..
 
-# configure RPi, add overlays in boot/config.txt
-dtoverlay=pi3-disable-bt
-dtoverlay=uart-ctsrts
-enable_uart=1 -> TODO verify if needed
+# configure RPi, add overlays in boot/config.txt:
+# dtoverlay=pi3-disable-bt
+# dtoverlay=uart-ctsrts
+# enable_uart=1 -> TODO verify if needed
+sudo sh -c "echo 'dtoverlay=pi3-disable-bt' >> /boot/config.txt"
+# add overlay that atarisio/atariserver just built to enabled CTS
+sudo sh -c "echo 'dtoverlay=uart-ctsrts' >> /boot/config.txt"
 
 # to run flask web server:
-sudo apt-get install python3-pip
+sudo apt-get -y install python3-pip
 sudo pip3 install flask
 
-# build web client and copy to web folder
+# [optional] building web-client on Raspberry Pi Zero is NOT recommended
+# build web client and copy files to web folder
+
+# get the right NodeJS for Raspberry Pi Zero W
+wget https://nodejs.org/dist/latest-v11.x/node-v11.14.0-linux-armv6l.tar.gz
+tar -xzf node-v11.14.0-linux-armv6l.tar.gz
+sudo cp -r node-v11.14.0-linux-armv6l/* /usr/local/
+
 cd web-client
+npm i
 npm run build
-mkdir -p web
-cp ./dist/atari-drive/*.* ./web
+mkdir -p ../flask/web
+rm ../flask/web/*
+cp ./dist/atari-drive/*.* ../flask/web
 
 # mount Atari files (floppy images, Atari xex)
 sudo mkdir /mnt/atari
@@ -58,4 +78,14 @@ sudo mount 10.0.0.8:volume1/Archive/AtariGames/\!ATRs /mnt/atari/
 # to start flask server on start-up add it to:
 # /etc/rc.local as
 # python3 /path/to/script.py &
+
+#######################
+
+# [optional] To disable the ACT LED on the Pi Zero add those lines in /boot/config.txt
+dtparam=act_led_trigger=none
+dtparam=act_led_activelow=on
+
+# [optional] To disable HDMI output to reduce power consumption
+tvservice -o
+
 
