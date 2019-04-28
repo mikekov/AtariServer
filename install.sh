@@ -1,4 +1,4 @@
-# update package info so install later on doesn't fail
+# update package info so installation later on doesn't fail
 sudo apt-get update
 sudo apt-get -y dist-upgrade
 
@@ -26,12 +26,10 @@ sudo make rpi-install
 cd ..
 
 # configure RPi, add overlays in boot/config.txt:
-# dtoverlay=pi3-disable-bt
-# dtoverlay=uart-ctsrts
 # enable_uart=1 -> TODO verify if needed
-sudo sh -c "echo 'dtoverlay=pi3-disable-bt' >> /boot/config.txt"
+grep -qxF 'dtoverlay=pi3-disable-bt' /boot/config.txt || sudo sh -c "echo 'dtoverlay=pi3-disable-bt' >> /boot/config.txt"
 # add overlay that atarisio/atariserver just built to enabled CTS
-sudo sh -c "echo 'dtoverlay=uart-ctsrts' >> /boot/config.txt"
+grep -qxF 'dtoverlay=uart-ctsrts' /boot/config.txt || sudo sh -c "echo 'dtoverlay=uart-ctsrts' >> /boot/config.txt"
 
 # to run flask web server:
 sudo apt-get -y install python3-pip
@@ -42,7 +40,9 @@ sudo mkdir -p /mnt/atari
 # mount your NAS drive
 # sudo mount 10.0.0.8:volume1/Archive/AtariGames/\!ATRs /mnt/atari/
 
-# to start flask server on start-up add it to:
-# /etc/rc.local as
-# python3 /path/to/script.py &
+# or copy them to SD card
+# note: if there are files in mounted location, then ~/files are not used
+mkdir -p ~/files
 
+# to start flask server on start-up add it to /etc/rc.local
+grep -qxF 'python3 /home/pi/AtariServer-master/flask/atari-web-server.py /home/pi/files &' /etc/rc.local || sudo sed -i -e '$i python3 /home/pi/AtariServer-master/flask/atari-web-server.py /home/pi/files &\n' /etc/rc.local

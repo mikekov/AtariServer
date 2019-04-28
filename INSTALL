@@ -1,6 +1,5 @@
 # AtariServer installation notes #
 
-
 # download Raspbian Stretch Lite from https://www.raspberrypi.org/downloads/raspbian/
 # unzip, use Etcher to write image to micro SD card
 # after flashing, configure OS
@@ -10,8 +9,9 @@
 # 3. boot options: console autologin, wait for wi-fi at boot?
 # 4. interfacing options: enable SSH, no login over serial, enable hardware serial port
 
-sudo apt-get update
-sudo apt-get -y dist-upgrade
+In your router admin web page, reserve IP address used by RPi, so it doesn't change across reboots.
+
+Connect to the RPi Zero with SSH (or Putty) and perform the following ('#' denotes comments):
 
 # to download main AtariServer package:
 wget https://github.com/mikekov/AtariServer/archive/master.zip
@@ -19,44 +19,24 @@ unzip master.zip
 rm master.zip
 ./AtariServer-master/install.sh
 
+# to make Atari files available to AtariServer, we can mount a network location
+# here Synology share at 192.0.0.10 is mounted; substitue with your own:
+sudo mount 192.0.0.10:volume1/Archive/Atari /mnt/atari/
+# if that works, add it to fstab:
+sudo sh -c "echo '192.0.0.10:volume1/Archive/Atari /mnt/atari/ nfs4' >> /etc/fstab"
+
+# or copy Atari floppy images (*.ATR) to an SD card directly:
+# copy *.ATR into /home/pi/files
+
+# reboot RPi, done
+
 ##########################
 
-# build AtariServer components one by one
-
-# to build atariserver executable, install required dependencies:
-sudo apt-get -y install build-essential libncurses5-dev zlib1g-dev
-
-# install Atari assembler
-wget https://github.com/linuxha/atasm/archive/master.zip
-unzip master.zip
-rm master.zip
-cd atasm-master/src
-make
-# one step in installation fails to copy missing documentation file; ignore it
-sudo make install || true
-cd ../..
-
-# build atariserver executable
-cd AtariServer-master/atarisio
-make tools DEFAULT_DEVICE=/dev/ttyAMA0
-#sudo make tools-install
-# install AtariSIO tools and RPi device tree overlays
-sudo make rpi-install
-cd ..
-
-# configure RPi, add overlays in boot/config.txt:
-# dtoverlay=pi3-disable-bt
-# dtoverlay=uart-ctsrts
-# enable_uart=1 -> TODO verify if needed
-sudo sh -c "echo 'dtoverlay=pi3-disable-bt' >> /boot/config.txt"
-# add overlay that atarisio/atariserver just built to enabled CTS
-sudo sh -c "echo 'dtoverlay=uart-ctsrts' >> /boot/config.txt"
-
-# to run flask web server:
-sudo apt-get -y install python3-pip
-sudo pip3 install flask
+# OPTIONAL steps
 
 # [optional] building web-client on Raspberry Pi Zero is NOT recommended
+# instead, web-client can be built on a faster machine
+
 # build web client and copy files to web folder
 
 # get the right NodeJS for Raspberry Pi Zero W
@@ -71,15 +51,7 @@ mkdir -p ../flask/web
 rm ../flask/web/*
 cp ./dist/atari-drive/*.* ../flask/web
 
-# mount Atari files (floppy images, Atari xex)
-sudo mkdir /mnt/atari
-sudo mount 10.0.0.8:volume1/Archive/AtariGames/\!ATRs /mnt/atari/
-
-# to start flask server on start-up add it to:
-# /etc/rc.local as
-# python3 /path/to/script.py &
-
-#######################
+#########################
 
 # [optional] To disable the ACT LED on the Pi Zero add those lines in /boot/config.txt
 dtparam=act_led_trigger=none
@@ -87,5 +59,3 @@ dtparam=act_led_activelow=on
 
 # [optional] To disable HDMI output to reduce power consumption
 tvservice -o
-
-

@@ -4,7 +4,8 @@ app = Flask(__name__, static_url_path='', static_folder='web')
 
 atari = None
 server = 'atariserver'
-pokeyDivisor = 40
+sharedDir = '/mnt/atari'
+pokeyDivisor = 40   # default transmission speed of 19200 baud
 turboOn = 0
 lastFile = ''
 fileList = []
@@ -106,10 +107,16 @@ def root():
 
 if __name__ == "__main__":
     path = sys.argv[1] if len(sys.argv) > 1 else None
-    if path:
+    # try mounted shared location first
+    if (len(fileList) == 0):
+        print('Scaning mounted dir ', sharedDir)
+        fileList = scanFolder(sharedDir)
+        print(len(fileList), " files found")
+
+    # try provided folder path if no files found
+    if path and len(fileList) == 0:
         print('Scaning dir ', path)
         fileList = scanFolder(path)
         print(len(fileList), " files found")
 
     app.run(host='0.0.0.0', port=80, debug=True)
-
