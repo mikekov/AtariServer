@@ -5,9 +5,9 @@
 # after flashing, configure OS
 # sudo raspi-config
 # 1. change user password
-# 2. network: hostname, connect wi-fi
-# 3. boot options: console autologin, wait for wi-fi at boot?
-# 4. interfacing options: enable SSH, no login over serial, enable hardware serial port
+# 2. network: (N1) hostname, (N2 Wi-fi) connect wi-fi
+# 3. boot options: (B1 Desktop / CLI -> B2 Console Autologin) console autologin, wait for wi-fi at boot?
+# 4. interfacing options: (P2 SSH) enable SSH, (P6 Serial) no login over serial, enable hardware serial port
 
 In your router admin web page, reserve IP address used by RPi, so it doesn't change across reboots.
 
@@ -17,13 +17,14 @@ Connect to the RPi Zero with SSH (or Putty) and perform the following ('#' denot
 wget https://github.com/mikekov/AtariServer/archive/master.zip
 unzip master.zip
 rm master.zip
+# install/build all components; this takes over 20 minutes on RPi Zero:
 ./AtariServer-master/install.sh
 
 # to make Atari files available to AtariServer, we can mount a network location;
-# here Synology share at 192.0.0.10 is mounted; substitue with your own share:
+# here Synology share at 192.168.1.10 is mounted; substitue with your own share:
 sudo mount 192.0.0.10:volume1/Archive/Atari /mnt/atari/
 # if that works, add it to fstab:
-sudo sh -c "echo '192.0.0.10:volume1/Archive/Atari /mnt/atari/ nfs4' >> /etc/fstab"
+sudo sh -c "echo '192.168.1.10:volume1/Archive/Atari /mnt/atari/ nfs4' >> /etc/fstab"
 
 # alternatively, copy Atari floppy images (*.ATR) to an SD card directly:
 # copy *.ATR into /home/pi/files

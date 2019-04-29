@@ -41,8 +41,8 @@
 <section class="list">
 	<ng-container *ngTemplateOutlet="search"></ng-container>
 	<virtual-scroller #scroll class="file-list" [items]="getFiles()">
-		<button *ngFor="let item of scroll.viewPortItems" class="file-item" [class.active]="item.id === currentFile?.id" (click)="selectFile(item)">
-			<span class="secondary">{{item.id}}. </span><span class="primary">{{getFileName(item.name)}}</span><span class="secondary">{{getFileNameExt(item.name)}}</span>
+		<button *ngFor="let item of scroll.viewPortItems" class="file-item" [class.active]="isSelected(item)" (click)="selectFile(item)">
+			<span class="secondary">{{item.index || item.id}}. </span><span class="primary">{{getFileName(item.name)}}</span><span class="secondary">{{getFileNameExt(item.name)}}</span>
 		</button>
 	</virtual-scroller>
 </section>

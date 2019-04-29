@@ -9,6 +9,7 @@ pokeyDivisor = 40   # default transmission speed of 19200 baud
 turboOn = 0
 lastFile = ''
 fileList = []
+startDir = os.path.dirname(os.path.abspath(__file__))
 
 # traverse directory recursively, collect all Atari files
 def scanFolder(path):
@@ -37,7 +38,9 @@ def startServer(filePath, readOnly, divisor, turbo):
     arg = '{server} -f /dev/ttyAMA0 -C -S {divisor} -s {turbo} '.format(server=server, divisor=divisor, turbo=turbo)
     # for turbo modes load HISIO driver into first drive
     if turbo:
-        arg = arg + "-p -1 hisioboot-atarisio.atr {ro} -2 {filePath}".format(ro=ro, filePath=filePath)
+        global startDir
+        hisio = os.path.join(startDir, 'hisioboot-atarisio.atr')
+        arg = arg + "-p -1 {hisio} {ro} -2 {filePath}".format(hisio=hisio, ro=ro, filePath=filePath)
     else:
         arg = arg + "{ro} -1 {filePath}".format(ro=ro, filePath=filePath)
 
@@ -53,7 +56,6 @@ def getFile(fileId):
         return shlex.quote(fileList[index])
     else:
         return None
-
 
 # load requested "floppy" into a drive
 @app.route('/insert/<int:fileId>', methods = ['PUT'])

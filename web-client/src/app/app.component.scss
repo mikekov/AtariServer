@@ -5,18 +5,20 @@
 .main {
 	width: 100%;
 	height: 100%;
-	display: grid;
+	display: flex;
+	flex-direction: column;
+/*	display: grid;
 	grid-template-areas:
 		"header"
 		"list"
 		"footer";
 	grid-template-columns: 1fr;
-	grid-template-rows: auto 1fr auto;
+	grid-template-rows: auto 1fr auto; */
 	background-color: $color-background;
 }
 
 .header {
-	grid-area: header;
+	// grid-area: header;
 	flex: 0 0 auto;
 	display: flex;
 	flex-wrap: wrap;
@@ -38,6 +40,7 @@
 
 .drive-cell {
 	justify-self: center;
+	flex-shrink: 0;
 	// reduced drive icon size for smart phones
 	height: 65px;
 	margin: 0.5em 0 -3px 0;
@@ -58,6 +61,7 @@ $top-space: 16px;
 .header-settings {
 	// on a phone settings are in the footer
 	display: none;
+	flex-shrink: 0;
 	align-items: baseline;
 	margin: $top-space 1em 0 1em;
 }
@@ -75,6 +79,7 @@ $top-space: 16px;
 
 .pill {
 	height: $ui-well;
+	flex-shrink: 0;
 	padding: 0.2em;
 	background-color: $color-background;
 	color: $color-secondary-text;
@@ -105,11 +110,11 @@ $top-space: 16px;
 	justify-content: center;
 }
 
-.options {
-	grid-area: options;
-	justify-self: end;
-	margin-right: $el-margin;
-}
+// .options {
+// 	grid-area: options;
+// 	justify-self: end;
+// 	margin-right: $el-margin;
+// }
 
 .radio-button {
 	@extend .push-btn;
@@ -188,7 +193,8 @@ button.tab-button {
 }
 
 .list {
-	grid-area: list;
+	// grid-area: list;
+	flex: 1 1 9999px;
 	padding: 1px 0.75em 0 0.75em;
 	display: flex;
 	flex-flow: column;
@@ -212,7 +218,7 @@ button.tab-button {
 	max-width: 500px; // looks silly when too wide
 	height: $ui-well;
 	align-self: center; // center itself when in a tablet/wide mode
-	flex: 0 0 auto;
+	flex-shrink: 0;
 	display: flex;
 	align-items: center;
 	margin-bottom: $row-space;
@@ -246,9 +252,10 @@ button.tab-button {
 
 .icon {
 	fill: $color-secondary-text;
-	flex: 0 0 auto;
+	flex-shrink: 0;
 	width: 1.4em;
 	height: 1.4em;
+	align-self: center;
 }
 
 .file-list {
@@ -294,7 +301,8 @@ button.tab-button {
 }
 
 .footer {
-	grid-area: footer;
+	// grid-area: footer;
+	flex: 0 0 auto;
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;
