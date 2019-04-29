@@ -73,6 +73,18 @@ $top-space: 16px;
 	width: 100%;
 }
 
+.break {
+	flex-basis: 100%;
+	width: 0px;
+	height: 0px;
+	overflow: hidden;
+}
+
+/* IE10 child fix: child elements must not be inline elements, can be: block|inline-block|flex|inline-flex */
+.break{
+	display: inline-block;
+}
+
 .small-font {
 	font-size: 0.8em;
 }

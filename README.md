@@ -1,3 +1,6 @@
+## NOTE: This is WORK IN PROGRESS. Doesn't work well yet.
+
+
 # Atari Server
 
 ### What is it?
@@ -11,7 +14,7 @@ It presents itself to 8-bit Atari as a floppy drive, so computer can load progra
 ## Hardware Components
 
 Components required to build it:
-1. Raspberry Pi Zero W (or 3+) and power supply
+1. Raspberry Pi Zero W (or faster 3+) and power supply
 1. Micro SD card (8 GB or larger)
 1. Bidirectional 4-channel level shifter
 1. Rectifier diode
