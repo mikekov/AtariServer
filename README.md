@@ -21,4 +21,4 @@ Components required to build it:
 
 ## Installation
 
-Please refer to the INSTALLATION file. It describes all steps necessary to install AtariServer on Raspberry Pi.
+Please refer to the INSTALL file. It describes all steps necessary to install AtariServer on Raspberry Pi.
