@@ -28,6 +28,7 @@
 #include "RefCounted.h"
 #include "PrinterHandler.h"
 #include "CasHandler.h"
+#include <functional>
 
 class DeviceManager : public RefCounted {
 public:
@@ -115,7 +116,7 @@ public:
 	bool EnableStrictFormatChecking(bool on);
 	bool GetStrictFormatChecking() const;
 
-	int DoServing(int otherReadPollDevice=-1);
+	int DoServing(int otherReadPollDevice=-1, std::function<void ()> callback= nullptr);
 
 	RCPtr<SIOManager> GetSIOManager();
 	RCPtr<SIOWrapper> GetSIOWrapper();

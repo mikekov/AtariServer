@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-
+#include <functional>
 #include "../driver/atarisio.h"
 #include "RefCounted.h"
 #include "RCPtr.h"
@@ -120,7 +120,7 @@ public:
 	 * SIO server methods
 	 */
 
-	virtual int WaitForCommandFrame(int otherReadPollDevice=-1) = 0;
+	virtual int WaitForCommandFrame(int otherReadPollDevice=-1, std::function<void ()> callback= nullptr) = 0;
 	/*
 	 * return values:
 	 * -1 = timeout

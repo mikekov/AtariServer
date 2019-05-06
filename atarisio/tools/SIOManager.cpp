@@ -57,7 +57,7 @@ bool SIOManager::UnregisterHandler(uint8_t device_id)
 	}
 }
 
-int SIOManager::DoServing(int otherReadPollDevice)
+int SIOManager::DoServing(int otherReadPollDevice, std::function<void ()> callback)
 {
 	int ret;
 	SIO_command_frame frame;
@@ -71,7 +71,7 @@ int SIOManager::DoServing(int otherReadPollDevice)
 	sigdelset(&sigset,SIGALRM);
 
 	while (1) {
-		ret = fWrapper->WaitForCommandFrame(otherReadPollDevice);
+		ret = fWrapper->WaitForCommandFrame(otherReadPollDevice, callback);
 		switch (ret) {
 		case 0: {
 			sigprocmask(SIG_BLOCK, &sigset, &orig_sigset);

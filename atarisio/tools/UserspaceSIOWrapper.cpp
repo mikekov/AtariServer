@@ -399,7 +399,7 @@ void UserspaceSIOWrapper::SetCommandHardErrorState()
 	fCommandReceiveState = eCommandHardError;
 }
 
-int UserspaceSIOWrapper::WaitForCommandFrame(int otherReadPollDevice)
+int UserspaceSIOWrapper::WaitForCommandFrame(int otherReadPollDevice, std::function<void ()> callback)
 {
 	fd_set read_set;
 	struct timeval tv;
@@ -411,6 +411,8 @@ int UserspaceSIOWrapper::WaitForCommandFrame(int otherReadPollDevice)
 	MiscUtils::TimestampType now;
 
 	while (true) {
+		if (callback) callback();
+
 		now = MiscUtils::GetCurrentTime();
 
 		tv.tv_sec = 0;

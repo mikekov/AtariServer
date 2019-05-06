@@ -764,8 +764,7 @@ int main(int argc, char** argv)
 	bool running = true;
 	do {
 #ifdef _WWW
-		mg_mgr_poll(&mgr, 0);
-		manager->DoServing(STDIN_FILENO);
+		manager->DoServing(-1, [&]() { mg_mgr_poll(&mgr, 0); });
 #else
 		int ch = frontend->GetCh(false);
 		switch (ch) {

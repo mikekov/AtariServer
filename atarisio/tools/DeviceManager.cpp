@@ -874,9 +874,9 @@ unsigned int DeviceManager::GetDriveImageSize(EDriveNumber driveno) const
 	return 0;
 }
 
-int DeviceManager::DoServing(int otherReadPollDevice)
+int DeviceManager::DoServing(int otherReadPollDevice, std::function<void ()> callback)
 {
-	return fSIOManager->DoServing(otherReadPollDevice);
+	return fSIOManager->DoServing(otherReadPollDevice, callback);
 }
 
 bool DeviceManager::DriveNumberOK(EDriveNumber driveno) const

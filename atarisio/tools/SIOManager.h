@@ -24,6 +24,7 @@
 
 #include "AbstractSIOHandler.h"
 #include "SIOWrapper.h"
+#include <functional>
 
 class SIOManager : public RefCounted {
 public:
@@ -42,7 +43,7 @@ public:
 	 *  0 = specified device has data available
 	 *  1 = error (or signal caught) during select
 	 */
-	int DoServing(int otherReadPollDevice=-1);
+	int DoServing(int otherReadPollDevice=-1, std::function<void ()> callback= nullptr);
 
 private:
 	RCPtr<SIOWrapper> fWrapper;

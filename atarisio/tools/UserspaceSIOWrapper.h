@@ -55,7 +55,7 @@ public:
 	 * SIO server methods
 	 */
 
-	virtual int WaitForCommandFrame(int otherReadPollDevice=-1);
+	virtual int WaitForCommandFrame(int otherReadPollDevice=-1, std::function<void ()> callback= nullptr);
 	/*
 	 * return values:
 	 * -1 = timeout
