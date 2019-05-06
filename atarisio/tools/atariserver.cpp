@@ -46,6 +46,7 @@ static SIOTracer* sioTracer = 0;
 #include <experimental/filesystem>
 #include <vector>
 #include <sstream>
+#include <algorithm>
 
 static const char* HISIO_BOOT = "hisioboot-atarisio.atr";
 namespace fs = std::experimental::filesystem;
@@ -56,14 +57,19 @@ static const char* atr_directory_path= ".";
 static std::vector<fs::path> s_files;
 
 void scan_dir(fs::path dir) {
+	const auto pos = dir.string().length() + 1;
+
 	for (const auto& entry : fs::recursive_directory_iterator(dir)) {
 		if (entry.status().type() == fs::file_type::regular) {
 			const auto ext = entry.path().extension();
 			if (ext == ".atr" || ext == ".ATR" || ext == ".xex" || ext == ".XEX") {
-				s_files.push_back(entry.path());
+				const auto rel = fs::path(entry.path().string().substr(pos));
+				s_files.push_back(rel);
 			}
 		}
 	}
+
+	std::sort(begin(s_files), end(s_files));
 }
 
 // load floppy image file or Atari xex into a drive
@@ -85,6 +91,10 @@ void insert_file(struct mg_connection* nc, mg_str* query_string) {
 	if (mg_get_http_var(query_string, "hisio", val, sizeof(val)) > 0) {
 		hisio = atoi(val);
 	}
+	int readOnly = 0;
+	if (mg_get_http_var(query_string, "ro", val, sizeof(val)) > 0) {
+		readOnly = atoi(val);
+	}
 
 	if (id < 0 || id > (int)s_files.size()) {
 		mg_printf(nc, "%s", "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
@@ -102,6 +112,7 @@ void insert_file(struct mg_connection* nc, mg_str* query_string) {
 				manager->SetHighSpeedMode(true);
 				manager->SetHighSpeedParameters(divisor, 0);
 				if (hisio && drive == DeviceManager::eDrive1) {
+					manager->UnloadDiskImage(drive);
 					// load hispeed boot patch
 					manager->LoadDiskImage(drive, HISIO_BOOT);
 					manager->SetWriteProtectImage(drive, true);
@@ -112,9 +123,11 @@ void insert_file(struct mg_connection* nc, mg_str* query_string) {
 			else {
 				manager->SetHighSpeedMode(false);
 			}
-			const auto& f = s_files[id - 1];
+			manager->UnloadDiskImage(drive);
+			const auto img = fs::path(atr_directory_path) / s_files[id - 1];
 			// insert file...
-			ok = manager->LoadDiskImage(drive, f.c_str(), false, true);
+			ok = manager->LoadDiskImage(drive, img.c_str(), false, true);
+			if (ok) manager->SetWriteProtectImage(drive, !!readOnly);
 		}
 
 		if (!ok) {
@@ -751,7 +764,8 @@ int main(int argc, char** argv)
 	bool running = true;
 	do {
 #ifdef _WWW
-		mg_mgr_poll(&mgr, 1000);
+		mg_mgr_poll(&mgr, 0);
+		manager->DoServing(STDIN_FILENO);
 #else
 		int ch = frontend->GetCh(false);
 		switch (ch) {

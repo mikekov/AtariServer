@@ -120,7 +120,7 @@ export class AppComponent implements OnInit {
 			// selecting the same file again unloads it
 			delete this.currentFile;
 			this.progress(true);
-			this.http.put<any>('/api/insert&id=0', {}).subscribe(() => { this.progress(false); /* ok */ }, err => { this.progress(false); this._error = "Error unloading file." });
+			this.http.put<any>('/api/insert?id=0', {}).subscribe(() => { this.progress(false); /* ok */ }, err => { this.progress(false); this._error = "Error unloading file." });
 		}
 	}
 
