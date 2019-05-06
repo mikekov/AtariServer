@@ -1,10 +1,9 @@
-import { Component, OnInit, ViewEncapsulation, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, ChangeDetectorRef, isDevMode } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 // in config.js
 declare var turboDivs: number[];
 
-const TEST_ONLY = true;
 const ALL_FILES = 0;
 const RECENT = 1;
 const FAVORITES = 2;
@@ -33,12 +32,16 @@ export class AppComponent implements OnInit {
 	) {}
 
 	ngOnInit(): void {
-		this.http.get<FileItem[]>('/files').subscribe(files => {
+		this.progress(true);
+		this.http.get<FileItem[]>('/api/files').subscribe(files => {
 			this._files = files;
 			this.filterChanged(this._filter);
+			this.progress(false);
 		}, err => {
 			console.log('No files.', err);
-			if (TEST_ONLY) {
+			this._error = "No files available.";
+			this.progress(false);
+			if (isDevMode()) {
 				this._files = [
 					{id: 1, name: "BruceeLee.ATR"},
 					{id: 2, name: "Boulder Dash.ATR"},
@@ -75,6 +78,8 @@ export class AppComponent implements OnInit {
 
 	// callback invoked when the user clicks on a file to load
 	selectFile(file: FileItem) {
+		if (this._progress) return;
+
 		if (file && file.id === 0) {
 			let found = false;
 			for (let i = 0; i < this._files.length; ++i) {
@@ -89,20 +94,33 @@ export class AppComponent implements OnInit {
 			}
 		}
 
+		this._error = "";
+
 		if (file && this.currentFile !== file) {
 			this.currentFile = file;
-			this.http.put<any>(`/insert/${file.id}`, {}).subscribe(() => { /* ok */ }, err => {
-				// todo
-				console.log(err);
+			const div = turboDivs[this._turbo].toString(); // Pokey divisor
+			const hiboot = 1; // load hisio auto boot ATR
+			this.progress(true);
+			this.http.put<any>(`/api/insert?id=${file.id}&div=${this._turbo ? div : 40}&hisio=${hiboot}`, {}).subscribe(
+				() => {
+					/* ok */
+					this.progress(false);
+					if (this._tab !== RECENT) {
+						this.addToRecent(file);
+					}
+				},
+				err => {
+					// todo
+					console.log(err);
+					this.progress(false);
+					this._error = "Error loading file.";
 			});
-			if (this._tab !== RECENT) {
-				this.addToRecent(file);
-			}
 		}
 		else {
 			// selecting the same file again unloads it
 			delete this.currentFile;
-			this.http.put<any>('/insert/0', {}).subscribe(() => { /* ok */ }, err => {});
+			this.progress(true);
+			this.http.put<any>('/api/insert&id=0', {}).subscribe(() => { this.progress(false); /* ok */ }, err => { this.progress(false); this._error = "Error unloading file." });
 		}
 	}
 
@@ -137,9 +155,9 @@ export class AppComponent implements OnInit {
 
 	setTurbo(t: number) {
 		this._turbo = t;
-		const on = t > 0 ? '1' : '0'; // use turbo mode
-		const div = turboDivs[t].toString(); // Pokey divider
-		this.http.put('/turbo', null, {params: {divider: div, turbo: on} }).subscribe(() => { /* ok */ }, err => {});
+		// const on = t > 0 ? '1' : '0'; // use turbo mode
+		// const div = turboDivs[t].toString(); // Pokey divider
+		// this.http.put('/turbo', null, {params: {divider: div, turbo: on} }).subscribe(() => { /* ok */ }, err => {});
 	}
 
 	addToRecent(file: FileItem) {
@@ -203,9 +221,20 @@ export class AppComponent implements OnInit {
 		document.cookie = name + "=" + value + "; path=/";
 	}
 
+	progress(on: boolean) {
+		if (on) {
+			this._progress++;
+		}
+		else {
+			if (this._progress > 0) {
+				this._progress--;
+			}
+		}
+	}
+
 	currentFile: FileItem | undefined;
 	title = 'atari-drive';
-	_turbo = 2;
+	_turbo = 0;
 	_filter = '';
 	_files: FileItem[] = [];
 	_filtered: FileItem[] = [];
@@ -213,4 +242,6 @@ export class AppComponent implements OnInit {
 	_favorite: FileItem[] = [];
 	_none = [];
 	_tab = 0;
+	_progress = 0;
+	_error = "";
 }

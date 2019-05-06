@@ -48,3 +48,5 @@ autom4te.cache
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# VIM
+*.swp

@@ -110,6 +110,14 @@ $top-space: 16px;
 	line-height: 1.25;
 }
 
+.error-info {
+	color: $color-header-error;
+	margin: 0 0 0 0.5em;
+	max-height: 5em;
+	overflow: hidden;
+	line-height: 1.25;
+}
+
 .file-ext {
 	color: $color-header-secondary-text;
 }
@@ -211,10 +219,17 @@ button.tab-button {
 	display: flex;
 	flex-flow: column;
 	min-height: 10px;
+	position: relative;
 
 	& > .search-box {
 		display: none; // hide this search box on a phone
 	}
+}
+
+.progress-bar {
+	position: absolute;
+	width: 100%;
+	top: -3px;
 }
 
 .primary {

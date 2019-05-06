@@ -20,10 +20,11 @@
 <main class="main">
 <section class="header">
 	<section class="drive-block">
-		<ata-drive class="drive-cell" [scale]="1.2" [floppy]="currentFile" [filename]="'D1:' + getFileName(currentFile?.name)"></ata-drive>
+		<ata-drive class="drive-cell" [scale]="1.2"></ata-drive>
 		<div class="drive-info">
 			<div class="pill"><span class="small-font">D1</span></div>
 			<p class="file-info">{{getFileName(currentFile?.name)}}<span class="file-ext">{{getFileNameExt(currentFile?.name)}}</span></p>
+			<p class="error-info">{{_error}}</p>
 		</div>
 		<section class="header-settings">
 			<ng-container *ngTemplateOutlet="turbo"></ng-container>
@@ -40,6 +41,7 @@
 </section>
 
 <section class="list">
+	<mk-progress-bar class="progress-bar" [visible]="_progress"></mk-progress-bar>
 	<ng-container *ngTemplateOutlet="search"></ng-container>
 	<virtual-scroller #scroll class="file-list" [items]="getFiles()">
 		<button *ngFor="let item of scroll.viewPortItems" class="file-item" [class.active]="isSelected(item)" (click)="selectFile(item)">

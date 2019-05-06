@@ -1317,7 +1317,9 @@ void CursesFrontend::ShowStandardHint()
 {
 	werase(fBottomLineWindow);
 	wmove(fBottomLineWindow, 0, 0);
+#ifndef _WWW
 	waddstr(fBottomLineWindow,"press 'h' for help, 'q' to quit");
+#endif
 }
 
 void CursesFrontend::ShowYesNoHint()

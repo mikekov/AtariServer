@@ -38,8 +38,145 @@
 #include <string.h>
 
 static CursesFrontend* frontend= NULL;
-
+static RCPtr<DeviceManager> manager;
 static SIOTracer* sioTracer = 0;
+
+#ifdef _WWW
+#include "../../mongoose/mongoose.h"
+#include <experimental/filesystem>
+#include <vector>
+#include <sstream>
+
+static const char* HISIO_BOOT = "hisioboot-atarisio.atr";
+namespace fs = std::experimental::filesystem;
+
+static const char* s_http_port = "80";
+static struct mg_serve_http_opts s_http_server_opts;
+static const char* atr_directory_path= ".";
+static std::vector<fs::path> s_files;
+
+void scan_dir(fs::path dir) {
+	for (const auto& entry : fs::recursive_directory_iterator(dir)) {
+		if (entry.status().type() == fs::file_type::regular) {
+			const auto ext = entry.path().extension();
+			if (ext == ".atr" || ext == ".ATR" || ext == ".xex" || ext == ".XEX") {
+				s_files.push_back(entry.path());
+			}
+		}
+	}
+}
+
+// load floppy image file or Atari xex into a drive
+void insert_file(struct mg_connection* nc, mg_str* query_string) {
+	int id = -1;
+	char val[100];
+	if (mg_get_http_var(query_string, "id", val, sizeof(val)) > 0) {
+		id = atoi(val);
+	}
+	int divisor = 40;
+	if (mg_get_http_var(query_string, "div", val, sizeof(val)) > 0) {
+		divisor = atoi(val);
+	}
+	auto drive = DeviceManager::eDrive1;
+	if (mg_get_http_var(query_string, "drive", val, sizeof(val)) > 0) {
+		drive = static_cast<DeviceManager::EDriveNumber>(atoi(val));
+	}
+	int hisio = 0;
+	if (mg_get_http_var(query_string, "hisio", val, sizeof(val)) > 0) {
+		hisio = atoi(val);
+	}
+
+	if (id < 0 || id > (int)s_files.size()) {
+		mg_printf(nc, "%s", "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+	}
+	else {
+		bool ok = false;
+		manager->WriteBackImagesIfChanged();
+		if (id == 0) {
+			// unload
+			ok = manager->UnloadDiskImage(drive);
+		}
+		else {
+			if (divisor < 40) {
+				// high speed mode
+				manager->SetHighSpeedMode(true);
+				manager->SetHighSpeedParameters(divisor, 0);
+				if (hisio && drive == DeviceManager::eDrive1) {
+					// load hispeed boot patch
+					manager->LoadDiskImage(drive, HISIO_BOOT);
+					manager->SetWriteProtectImage(drive, true);
+					// prep flopy image in the second drive ready for swap
+					drive = DeviceManager::eDrive2;
+				}
+			}
+			else {
+				manager->SetHighSpeedMode(false);
+			}
+			const auto& f = s_files[id - 1];
+			// insert file...
+			ok = manager->LoadDiskImage(drive, f.c_str(), false, true);
+		}
+
+		if (!ok) {
+			mg_printf(nc, "%s", "HTTP/1.1 400 Error (un)loading image\r\nContent-Length: 0\r\n\r\n");
+		}
+		else {
+			mg_printf(nc, "%s", "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n");
+		}
+	}
+}
+
+// respond with an array of files to serve in JSON format
+static void send_list(struct mg_connection* c) {
+	std::ostringstream ost;
+	ost << "[\n";
+	const auto N = s_files.size();
+	size_t i = 1;
+	for (const auto& file : s_files) {
+		ost << "{\"id\": " << i << ", \"name\": " << file << "}";
+		if (i != N) ost << ',';
+		++i;
+	}
+	ost << "]\n";
+	const auto& json = ost.str();
+
+	mg_send_head(c, 200, json.length(), "Content-Type: application/json");
+	mg_send(c, json.c_str(), json.length());
+}
+
+static void ev_handler(struct mg_connection* nc, int ev, void* ev_data) {
+	struct http_message* hm = (struct http_message*)ev_data;
+
+	switch (ev) {
+		case MG_EV_HTTP_REQUEST:
+
+			if (mg_vcmp(&hm->uri, "/api/files") == 0) {
+				if (s_files.empty() && atr_directory_path) {
+					fprintf(stdout, "Rescanning dir %s\n", atr_directory_path);
+					scan_dir(atr_directory_path);
+					fprintf(stdout, "Rescanning done, %zd files\n", s_files.size());
+				}
+				send_list(nc);
+			}
+			else if (mg_vcmp(&hm->uri, "/api/insert") == 0) {
+				// if (mg_vcmp(&hm->method, "PUT")) {
+					// set file to serve: id = <file-number> & div = <pokey-speed-divisor> & drive = <drive-number> & hisio = <0|1>
+					insert_file(nc, &hm->query_string);
+				// }
+			}
+			else if (mg_vcmp(&hm->uri, "/api/current") == 0) {
+				// TODO: respond with the currently selected image
+			}
+			else {
+				mg_serve_http(nc, hm, s_http_server_opts); /* Serve static content */
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+#endif
 
 static void my_sig_handler(int sig)
 {
@@ -59,6 +196,7 @@ static void my_sig_handler(int sig)
 			sioTracer->RemoveAllTracers();
 		}
 		endwin();
+		manager = NULL;
 		exit(0);
 	case SIGPIPE:
 	case SIGCHLD:
@@ -67,7 +205,6 @@ static void my_sig_handler(int sig)
 }
 
 static int trace_level = 0;
-
 static const char* cas_filename = 0;
 
 static void process_args(RCPtr<DeviceManager>& manager, CursesFrontend* frontend, int argc, char** argv)
@@ -90,6 +227,32 @@ static void process_args(RCPtr<DeviceManager>& manager, CursesFrontend* frontend
 			}
 			if (argv[i][0]=='-') {
 				switch(argv[i][1]) {
+#ifdef _WWW
+				case 'w':
+					// http server root dir
+					if (i + 1 < argc) {
+						s_http_server_opts.document_root = argv[++i];
+					} else {
+						AERROR("-w <www-root> needs a parameter!");
+					}
+					break;
+				case 'd':
+					// http server folder with Atari files
+					if (i + 1 < argc) {
+						atr_directory_path = argv[++i];
+					} else {
+						AERROR("-d <atr-dir-path> needs a parameter!");
+					}
+					break;
+				case 'b':
+					// hisioboot ATR file
+					if (i + 1 < argc) {
+						HISIO_BOOT = argv[++i];
+					} else {
+						AERROR("-b <hisioboot> needs a parameter!");
+					}
+					break;
+#endif
 				case '1':
 				case '2':
 				case '3':
@@ -398,7 +561,6 @@ int atariserver_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-	RCPtr<DeviceManager> manager;
 	char* atarisioDevName = getenv("ATARISERVER_DEVICE");
 	if (argc > 1 && (!strcmp(argv[1],"-h") || !strcmp(argv[1],"--help") ) ) {
 		usage();
@@ -426,6 +588,7 @@ int main(int argc, char** argv)
 	bool useColor = true;
 	const char* traceFile = 0;
 	struct sigaction sigact;
+
 
 	// scan argv for "-h", "-m", -"o file"
 	{
@@ -521,12 +684,57 @@ int main(int argc, char** argv)
 #endif
 	}
 
+	// key_t key = ftok("http_server", 123);
+	// int msgid = msgget(key, 0666 | IPC_CREAT);
+	// if (msgid < 0) {
+	// 	printf("atariserver - Error requesting message queue id.");
+	// 	return 1;
+	// }
+
 	process_args(manager, frontend, argc, argv);
 
 	RCPtr<RemoteControlHandler> remoteControl = new RemoteControlHandler(manager.GetRealPointer(), frontend);
 	if (!manager->GetSIOManager()->RegisterHandler(DeviceManager::eSIORemoteControl, remoteControl)) {
 		DPRINTF("registering remote control handler failed");
 	}
+
+#ifdef _WWW
+	struct mg_mgr mgr;
+	struct mg_connection* nc = 0;
+	struct mg_bind_opts bind_opts;
+	const char* err_str = 0;
+#if MG_ENABLE_SSL
+	const char* ssl_cert = NULL;
+#endif
+
+	mg_mgr_init(&mgr, NULL);
+
+	/* Set HTTP server options */
+	memset(&bind_opts, 0, sizeof(bind_opts));
+	bind_opts.error_string = &err_str;
+#if MG_ENABLE_SSL
+	if (ssl_cert != NULL) {
+		bind_opts.ssl_cert = ssl_cert;
+	}
+#endif
+	nc = mg_bind_opt(&mgr, s_http_port, ev_handler, bind_opts);
+	if (nc == NULL) {
+		fprintf(stderr, "Error starting server on port %s: %s\n", s_http_port, *bind_opts.error_string);
+		exit(1);
+	}
+
+	if (atr_directory_path) {
+		fprintf(stdout, "Scanning dir %s\n", atr_directory_path);
+		scan_dir(atr_directory_path);
+		fprintf(stdout, "Scanning done, %zd files\n", s_files.size());
+	}
+
+	mg_set_protocol_http_websocket(nc);
+	s_http_server_opts.enable_directory_listing = "yes";
+
+	printf("Starting RESTful server on port %s, serving %s\n", s_http_port, s_http_server_opts.document_root);
+
+#endif
 
 	frontend->DisplayDriveStatus();
 	frontend->DisplayPrinterStatus();
@@ -539,8 +747,12 @@ int main(int argc, char** argv)
 	if (cas_filename) {
 		frontend->ProcessTapeEmulation(cas_filename);
 	}
+
 	bool running = true;
 	do {
+#ifdef _WWW
+		mg_mgr_poll(&mgr, 1000);
+#else
 		int ch = frontend->GetCh(false);
 		switch (ch) {
 		case 'a':
@@ -632,7 +844,7 @@ int main(int argc, char** argv)
 		if (frontend->GotSigWinCh()) {
 			frontend->HandleResize();
 		}
-
+#endif
 	} while (running);
 
 	sioTracer->RemoveAllTracers();
@@ -641,5 +853,11 @@ int main(int argc, char** argv)
 		frontend = NULL;
 		delete fe;
 	}
+
+	manager = nullptr;
+
+#ifdef _WWW
+	mg_mgr_free(&mgr);
+#endif
 	return 0;
 }

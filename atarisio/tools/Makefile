@@ -28,6 +28,8 @@ EXECUTABLES += measure-system-latency casinfo test-fsk test-transmit \
 	serialwatcher ataridd
 endif
 
+CXXFLAGS += -D_WWW
+
 #MINGW_CXX=i586-mingw32msvc-g++
 MINGW_CXX=i686-w64-mingw32-g++
 #MINGW_STRIP=i586-mingw32msvc-strip
@@ -93,11 +95,11 @@ ATARISERVER_OBJS = atariserver.o CursesFrontend.o StringInput.o \
 	DataContainer.o HighSpeedSIOCode.o MyPicoDosCode.o \
 	CursesFrontendTracer.o AtrSearchPath.o SearchPath.o \
 	Dos2xUtils.o VirtualImageObserver.o \
-	CasHandler.o
+	CasHandler.o mongoose.o
 
 COMMON_LIBS = $(ZLIB_LDFLAGS)
 
-ATARISERVER_LIBS = $(COMMON_LIBS) $(NCURSES_LDFLAGS)
+ATARISERVER_LIBS = $(COMMON_LIBS) $(NCURSES_LDFLAGS) -lstdc++fs
 
 ATARISERVER_NOCURSES_OBJS = atariserver-nocurses.o \
 	$(COMMON_OBJS) $(SIOWRAPPER_OBJS) $(ATRIMAGE_OBJS) \
