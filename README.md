@@ -1,6 +1,3 @@
-## NOTE: This is WORK IN PROGRESS. Doesn't work well yet.
-
-
 # Atari Server
 
 ### What is it?
@@ -16,7 +13,7 @@ It presents itself to 8-bit Atari as a floppy drive, so computer can load progra
 Components required to build it:
 1. Raspberry Pi Zero W (or faster 3+) and power supply
 1. Micro SD card (8 GB or larger)
-1. Bidirectional 4-channel level shifter
+1. 4-channel bidirectional level shifter
 1. Rectifier diode
 1. Atari SIO connector (or connector pins from DB 25 female connector)
 
@@ -25,3 +22,7 @@ Components required to build it:
 ## Installation
 
 Please refer to the INSTALL file. It describes all steps necessary to install AtariServer on Raspberry Pi.
+
+## Software
+
+This project combines [atariserver](www.horus.com/~hias/atari/) by Hias with embedded web server (Mongoose) to create virtual floppy drive for Atari. To select floppy images users can use their smartphone or tablet.
