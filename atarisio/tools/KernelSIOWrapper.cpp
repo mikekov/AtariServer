@@ -133,7 +133,7 @@ int KernelSIOWrapper::ExtSIO(Ext_SIO_parameters& params)
 	return fLastResult;
 }
 
-int KernelSIOWrapper::WaitForCommandFrame(int otherReadPollDevice)
+int KernelSIOWrapper::WaitForCommandFrame(int otherReadPollDevice, std::function<void ()> callback)
 {
 	fd_set read_set;
 	fd_set except_set;
